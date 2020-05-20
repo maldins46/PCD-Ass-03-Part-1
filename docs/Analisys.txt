@@ -1,0 +1,34 @@
+Messaggi:(API)
+	newGame: Gui - Arbitro
+		 Arbitro - Players (crea)
+	startTurno: Gui - Arbitro 
+	turno: Arbitro - Player
+	send: Player - PlayerR (tentativo)
+	      Player - Arbitro (timeout)
+	receive: PlayerR - Players (multicast)
+		 PlayerR - Arbitro (send Arbitro nuovo turno)
+	tentativo di vittoria (send): Player - Arbitro
+	verifica tentativo: Arbitro - Players (escluso il Player opzionale)
+	mess di vittoria/sconfitta:
+		sconfitta: Arbitro - Player (viene escluso)
+		vittoria: Arbitro - Players (si comunica il vincitore) 
+	stop: Gui - Arbitro
+	      Arbitro -	Players
+
+gestione arbitro:
+	set/list di Player (memorizzazione dei Player, compresi gli esclusi)
+	set/list per i turni dei player (senza gli esclusi)
+	se un player sbaglia viene escluso dal set/list
+	gestione timeout (costante per tutti Player)
+	verifica numbers
+	
+gestione player:
+	invio tentativo (Player - Player e Arbitro)
+	riceve tentativo e inoltra la risposta
+	tenta la vittoria
+	
+	
+	
+
+
+	
