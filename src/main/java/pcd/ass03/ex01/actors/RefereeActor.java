@@ -69,11 +69,7 @@ public final class RefereeActor extends AbstractActor {
         }
 
         players.forEach(player -> {
-            final StartPlayerMsg message = new StartPlayerMsg(
-                    startGameMsg.getCombinationSize(),
-                    players,
-                    getSelf()
-            );
+            final StartPlayerMsg message = new StartPlayerMsg(startGameMsg.getCombinationSize(), players, getSelf());
             player.tell(message, getSelf());
         });
 
