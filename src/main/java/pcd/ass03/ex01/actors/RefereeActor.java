@@ -72,7 +72,6 @@ public final class RefereeActor extends AbstractActor {
             final StartPlayerMsg message = new StartPlayerMsg(startGameMsg.getCombinationSize(), players, getSelf());
             player.tell(message, getSelf());
         });
-
         startNextTurn();
     }
 

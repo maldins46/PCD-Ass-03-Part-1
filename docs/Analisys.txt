@@ -17,7 +17,7 @@ Messaggi:
 	    un giocatore finisce il proprio turno, o all'avvio, per il primo turno
 
 	GuessMsg:
-	    { Combination guessedCombination }
+	    { Combination guessedCombination, ActorRef sender }
 	    Player - PlayerR
 	    Chiede a un giocatore quanto una sequenza scelta si avvicina a quella giusta.
 
@@ -118,14 +118,14 @@ PlayerActor
     Map<ActorRef, Combination> guessedCombinations: tiene traccia delle comb. indovinate, iniz. 0
     Map<ActorRef, Set<Combination>> triedCombinations: combinazioni provate per ogni attore
 
-    - match StartGameMsg:
+    - match StartPlayerMsg: (done)
         1. salva rif. a arbitro e players
         2. crea la tua combinaz, a seconda di m
 
     - match StopGameMsg:
         1. stoppati
 
-    - match StartTurnMsg:
+    - match StartTurnMsg: (done)
         1. abilita lo stato "turn"
         2. Scegli casualmente un altro player di cui non hai già la comb.
         3. Crea la combinazione da inviargli, controllando che non gliel abbia già inviata

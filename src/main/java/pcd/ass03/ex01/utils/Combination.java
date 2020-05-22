@@ -44,4 +44,11 @@ public interface Combination {
     static Combination of(final int combinationSize) {
         return new CombinationImpl(combinationSize);
     }
+
+    /**
+     * This method returns the size of the combination.
+     * @return the size
+     */
+    int getCombinationSize();
+
 }

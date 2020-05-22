@@ -64,4 +64,8 @@ final class CombinationImpl implements Combination {
     private boolean combWithDifferentSize(final CombinationImpl toCompare) {
         return combination.size() != toCompare.combination.size();
     }
+
+    public int getCombinationSize(){
+        return this.combination.size();
+    }
 }

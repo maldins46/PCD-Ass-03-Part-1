@@ -5,4 +5,6 @@ package pcd.ass03.ex01.messages;
  * un giocatore finisce il proprio turno, o all'avvio, per il primo turno
  */
 public final class StartTurnMsg implements Message {
+
+
 }
