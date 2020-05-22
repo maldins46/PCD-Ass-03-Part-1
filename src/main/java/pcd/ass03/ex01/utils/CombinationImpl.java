@@ -22,22 +22,12 @@ final class CombinationImpl implements Combination {
         }
     }
 
-    /**
-     * Checks whether the passed combination is equal to the current.
-     * @param toCompare the combination to compare with the current.
-     * @return true if the combination are equals, false otherwise.
-     */
+
     @Override
     public boolean compare(final CombinationImpl toCompare) {
         return combination.equals(toCompare.combination);
     }
 
-    /**
-     * Returns the number of cyphers that are in the same place, with the same value.
-     * @param toCompare the combination to compare with the current.
-     * @return the number of cyphers that are in the same place, with the same value.
-     *         If the size of the lists are different, it returns 0.
-     */
     @Override
     public int computeGuessedPositions(final CombinationImpl toCompare) {
         int nOfGuessedPositions = 0;
@@ -54,13 +44,6 @@ final class CombinationImpl implements Combination {
         return nOfGuessedPositions;
     }
 
-    /**
-     * Returns the number of cyphers that are in common between combination, but NOT
-     * in the same place.
-     * @param toCompare the combination to compare with the current.
-     * @return the number of cyphers that are in common between combination, but NOT
-     *         in the same place. If the size of the lists are different, it returns 0.
-     */
     @Override
     public int computeGuessedCyphers(final CombinationImpl toCompare) {
         int nOfGuessedCyphers = 0;
@@ -78,11 +61,6 @@ final class CombinationImpl implements Combination {
         return nOfGuessedCyphers;
     }
 
-    /**
-     * Checks whether combinations have the same size.
-     * @param toCompare the combination to compare with the current.
-     * @return true if combinations have the same size, false otherwise.
-     */
     private boolean combWithDifferentSize(final CombinationImpl toCompare) {
         return combination.size() != toCompare.combination.size();
     }
