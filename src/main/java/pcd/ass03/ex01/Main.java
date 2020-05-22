@@ -6,12 +6,6 @@ import akka.actor.Props;
 
 public class Main {
     public static void main(String[] args) throws Exception  {
-        ActorSystem system = ActorSystem.create("MySystem");
 
-        ActorRef act = system.actorOf(Props.create(HappyActor.class));
-        act.tell(new HelloMsg("World"), ActorRef.noSender());
-        act.tell("Another msg", ActorRef.noSender());
-
-        Thread.sleep(1000);
     }
 }
