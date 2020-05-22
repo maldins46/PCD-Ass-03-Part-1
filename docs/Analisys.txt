@@ -16,12 +16,12 @@ Messaggi:
 	    Inviato a un giocatore per volta, di fare una scelta. Parte ogni volta che
 	    un giocatore finisce il proprio turno, o all'avvio, per il primo turno
 
-	AttemptMsg:
+	GuessMsg:
 	    { Combination guessedCombination }
 	    Player - PlayerR
 	    Chiede a un giocatore quanto una sequenza scelta si avvicina a quella giusta.
 
-	RespondToAttemptMsg:
+	RespondToGuessMsg:
 	    { int guessedCyphers, int guessedPositions }
 	    PlayerR - Player
     	Risponde al giocatore sulla sequenza scelta.
@@ -31,18 +31,18 @@ Messaggi:
 	    Player - Arbitro
 	    Notifica di aver finito il proprio turno. Risolve anche il timeout.
 
-	SuppositionMsg:
+	SolutionMsg:
 	    { Map<ActorRef, Combination> supposedCombinations }
 	    Player - Arbitro
 	    Notifica all'arbitro di aver trovato una combinazione definitiva
 
-	VerifySuppositionMsg:
+	VerifySolutionMsg:
 	    { Combination supposedCombination }
 	    Arbitro - Players
 	    Arrivata una combinazione finale, l'arbitro chiede a ogni giocatore con questo
 	    messaggio se la combinazione è giusta oppure no
 
-	VerifySuppositionResponseMsg
+	VerifySolutionResponseMsg
         { boolean combinationGuessed }
 	    Player - Arbitro
 	    Risposta all'arbitro riguardo la validità della combinazione nel tentativo di vitt.
@@ -77,7 +77,7 @@ RefereeActor
                                uno ha eseguito il proprio turno. Una volta finita la lista, la ricrei
                                ordinando casualmente i player in gioco.
 
-    Map<ActorRef, Boolean> verifySupposition
+    Map<ActorRef, Boolean> verifySolution
     ActorRef supposingActor
 
 
@@ -97,15 +97,15 @@ RefereeActor
         2. dai lo startTurn al giocatore succ.
         3. rimuovi il giocatore iniziato dal currentLap
 
-    - match SuppositionMsg
+    - match SolutionMsg
         1. Poni verifiedActor uguale al mittente del messaggio
-        2. invii a tutti il msg VerifySuppositionMsg
+        2. invii a tutti il msg VerifySolutionMsg
 
-    - match VerifySuppositionResponseMsg
+    - match VerifySolutionResponseMsg
         1. metti l'attore corrispondente nella map verifyResponses, con true se comb. corretta, false altrimenti
         2. Controlli se sono arrivate tutte le risposte (verifyResponses.size == players.size)
         3. Se sono tutte, controlli che siano tutte true
-        4. A seconda che siano tutte true oppure no, invii a tutti il VerifySuppositionResponse
+        4. A seconda che siano tutte true oppure no, invii a tutti il VerifySolutionResponse
            configurato diversamente. Da includere dentro il mess. anche il n. di giocatori in corsa.
         5. Inizializzi le strutture verifyResponses (deve essere vuota), e metti verifiedActor a null
 
@@ -129,23 +129,23 @@ PlayerActor
         1. abilita lo stato "turn"
         2. Scegli casualmente un altro player di cui non hai già la comb.
         3. Crea la combinazione da inviargli, controllando che non gliel abbia già inviata
-        4. inviagliela con AttemptMsg
+        4. inviagliela con GuessMsg
 
-    - match AttemptMsg:
+    - match GuessMsg:
         1. confronto la combinazione provata con la mia
-        2. risponddo con un msg RespondToAttemptMsg, con dentro scritto le cifre giuste, e quelle nella pos. giusta
+        2. risponddo con un msg RespondToGuessMsg, con dentro scritto le cifre giuste, e quelle nella pos. giusta
 
-    - match RespondToAttemptMsg: !!!!(puoi riceverlo solo se è il tuo turno)!!!!
+    - match RespondToGuessMsg: !!!!(puoi riceverlo solo se è il tuo turno)!!!!
         1. Disabilita lo stato "turn"
         2. Se tutte le cifre sono nel posto giusto (m cif. giuste, m in pos. giusta), metto la comb in guessedActors
-        3. Se guessedActors.size == players.size, invia un SuppositionMsg con tutte le comb.
+        3. Se guessedActors.size == players.size, invia un SolutionMsg con tutte le comb.
         4. Altrimenti, invia FinishTurnMsg
 
     - TimeoutMsg !!!!(puoi riceverlo solo se è il tuo turno)!!!!
         1. Se sei umano, disabilita la gui
         2. In ogni caso, disabilita lo stato "turn"
 
-    - match VerifySuppositionMsg:
+    - match VerifySolutionMsg:
         1. Confronti la tua combination con quella inviata
         2. invii all'arbitro true se indovinata, false altrimenti
 
