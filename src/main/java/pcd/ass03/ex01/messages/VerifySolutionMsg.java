@@ -8,8 +8,9 @@ import akka.actor.ActorRef;
  * messaggio se la combinazione è giusta oppure no
  */
 
-public class VerifySolutionMsg implements Message {
+public final class VerifySolutionMsg implements Message {
     private final ActorRef winnerRef;
+
     public VerifySolutionMsg(final ActorRef winnerRef){
         this.winnerRef = winnerRef;
     }
@@ -17,6 +18,4 @@ public class VerifySolutionMsg implements Message {
     public ActorRef getWinnerRef(){
         return winnerRef;
     }
-
-
 }

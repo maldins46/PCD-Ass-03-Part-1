@@ -7,7 +7,7 @@ import akka.actor.ActorRef;
  */
 
 
-public class WinMsg implements Message{
+public final class WinMsg implements Message{
     private final ActorRef winnerRef;
 
     public WinMsg(final ActorRef winnerRef){
