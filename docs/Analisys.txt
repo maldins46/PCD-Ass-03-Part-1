@@ -63,8 +63,8 @@ Messaggi:
 	    Cambia il controlText della Gui
 
     TimeoutMsg:
-        Arbitro - Player
-        Notifica al player che non è più il suo turno.
+        Arbitro - Player        Notifica al player che non è più il suo turno.
+
 
 
 
