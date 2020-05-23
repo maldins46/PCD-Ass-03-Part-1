@@ -118,36 +118,36 @@ PlayerActor
     Map<ActorRef, Combination> guessedCombinations: tiene traccia delle comb. indovinate, iniz. 0
     Map<ActorRef, Set<Combination>> triedCombinations: combinazioni provate per ogni attore
 
-    - match StartPlayerMsg: (done)
+(V) - match StartPlayerMsg:
         1. salva rif. a arbitro e players
         2. crea la tua combinaz, a seconda di m
 
     - match StopGameMsg:
         1. stoppati
 
-    - match StartTurnMsg: (done)
+(V) - match StartTurnMsg:
         1. abilita lo stato "turn"
         2. Scegli casualmente un altro player di cui non hai già la comb.
         3. Crea la combinazione da inviargli, controllando che non gliel abbia già inviata
         4. inviagliela con GuessMsg
 
-    - match GuessMsg:
+(V) - match GuessMsg:
         1. confronto la combinazione provata con la mia
         2. risponddo con un msg RespondToGuessMsg, con dentro scritto le cifre giuste, e quelle nella pos. giusta
 
-    - match RespondToGuessMsg: !!!!(puoi riceverlo solo se è il tuo turno)!!!!
+(V) - match RespondToGuessMsg: !!!!(puoi riceverlo solo se è il tuo turno)!!!!
         1. Disabilita lo stato "turn"
         2. Se tutte le cifre sono nel posto giusto (m cif. giuste, m in pos. giusta), metto la comb in guessedActors
         3. Se guessedActors.size == players.size, invia un SolutionMsg con tutte le comb.
         4. Altrimenti, invia FinishTurnMsg
 
-    - TimeoutMsg !!!!(puoi riceverlo solo se è il tuo turno)!!!!
+(V) - TimeoutMsg !!!!(puoi riceverlo solo se è il tuo turno)!!!!
         1. Se sei umano, disabilita la gui
         2. In ogni caso, disabilita lo stato "turn"
 
-    - match VerifySolutionMsg:
+(V) - match VerifySolutionMsg:
         1. Confronti la tua combination con quella inviata
-        2. invii all'arbitro true se indovinata, false altrimenti
+        2. invii all'arbitro VerifySolutionResponseMsg true se indovinata, false altrimenti
 
     - WinMsg:
         1. Se sei anche umano, e se mio dio parla di me, mostra label hai vinto
