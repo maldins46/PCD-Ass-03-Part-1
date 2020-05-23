@@ -26,7 +26,7 @@ public final class GuiActor extends GenericActor {
     @Override
     public void preStart() {
         this.gameGui = GameGui.of(this);
-        this.refereeActor = getContext().getSystem().actorOf(Props.create(RefereeActor.class),"Referee");
+        this.refereeActor = getContext().getSystem().actorOf(Props.create(RefereeActor.class), "Referee");
     }
 
 

@@ -62,9 +62,9 @@ public final class GameGuiImpl implements GameGui {
 
         this.playerComboBox = new JComboBox<>(depthValues);
 
-        this.startStopButton = new JButton("Start");
+        this.startStopButton = new JButton(START);
 
-        this.logLabel = new JLabel(START);
+        this.logLabel = new JLabel("You can start the game!");
         this.logLabel.setPreferredSize(new Dimension(500, 30));
 
         this.launch();
@@ -78,6 +78,7 @@ public final class GameGuiImpl implements GameGui {
         mainFrame.setResizable(false);
 
         JPanel generalPanel = new JPanel();
+        generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.PAGE_AXIS));
 
 
         final JPanel playersPanel = new JPanel();
@@ -119,6 +120,7 @@ public final class GameGuiImpl implements GameGui {
                 System.exit(-1);
             }
         });
+        mainFrame.setVisible(true);
     }
 
 
