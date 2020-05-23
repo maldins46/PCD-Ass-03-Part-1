@@ -1,8 +1,8 @@
 package pcd.ass03.ex01.actors;
 
-import akka.actor.*;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
 import pcd.ass03.ex01.messages.*;
 
 import java.util.*;
@@ -42,14 +42,44 @@ public final class RefereeActor extends GenericActor {
 
     @Override
     public Receive createReceive() {
+        return standardBehavior();
+    }
+
+
+    private Receive standardBehavior() {
         return receiveBuilder()
                 .match(StartGameMsg.class, this::handleStartGameMsg)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
                 .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
                 .match(SolutionMsg.class, this::handleSolutionMsg)
+                .matchAny(this::messageNotRecognized)
+                .build();
+    }
+
+
+    private Receive verifySolutionBehavior() {
+        return receiveBuilder()
                 .match(VerifySolutionResponseMsg.class, this::handleVerifySolutionResponseMsg)
                 .matchAny(this::messageNotRecognized)
                 .build();
+    }
+
+
+    /**
+     * When the referee receives a SolutionMsg from a player, it queries all players
+     * to know whether the solution is right.
+     * @param solutionMsg the received message
+     */
+    void handleSolutionMsg(final SolutionMsg solutionMsg) {
+        getContext().become(verifySolutionBehavior(), true);
+        verifiedPlayer = solutionMsg.getSender();
+        players.stream().filter(player -> player != verifiedPlayer).forEach(player -> {
+            final VerifySolutionMsg message = new VerifySolutionMsg(
+                    solutionMsg.getSender(),
+                    solutionMsg.getCombinations().get(player)
+            );
+            player.tell(message, getSelf());
+        });
     }
 
 
@@ -59,7 +89,7 @@ public final class RefereeActor extends GenericActor {
      * @param startGameMsg the message
      */
     private void handleStartGameMsg(final StartGameMsg startGameMsg) {
-        ActorSystem system = this.getContext().getSystem();
+        final ActorSystem system = this.getContext().getSystem();
 
         for (int i = 0; i < startGameMsg.getnPlayers(); i++) {
             final String playerName = "Player" + i;
@@ -87,42 +117,16 @@ public final class RefereeActor extends GenericActor {
             player.tell(message, getSelf());
         });
 
-        this.context().stop(getSelf());
+        this.getContext().stop(getSelf());
     }
 
-
-    /**
-     * When the referee receives a FinishTurnMessage from a player, it starts the
-     * next turn.
-     * @param finishTurnMsg the received message.
-     */
-    private void handleFinishTurnMsg(final FinishTurnMsg finishTurnMsg) {
-        startNextTurn();
-    }
-
-
-    /**
-     * When the referee receives a SolutionMsg from a player, it queries all players
-     * to know whether the solution is right.
-     * @param solutionMsg the received message
-     */
-    private void handleSolutionMsg(final SolutionMsg solutionMsg) {
-        verifiedPlayer = solutionMsg.getSender();
-        players.stream().filter(player -> player != verifiedPlayer).forEach(player -> {
-            final VerifySolutionMsg message = new VerifySolutionMsg(
-                    solutionMsg.getSender(),
-                    solutionMsg.getCombinations().get(player)
-            );
-            player.tell(message, getSelf());
-        });
-    }
 
     /**
      * When the referee receives VerifySolutionResponseMsg from a player, it memorizes
      * the result; then, if all players have responded, communicate the result to the players.
      * @param verifySolRespMsg the received message.
      */
-    private void handleVerifySolutionResponseMsg(final VerifySolutionResponseMsg verifySolRespMsg) {
+    void handleVerifySolutionResponseMsg(final VerifySolutionResponseMsg verifySolRespMsg) {
         verifySolution.put(verifySolRespMsg.getSender(), verifySolRespMsg.isSolutionGuessed());
 
         if (verifySolution.size() == players.size()) {
@@ -147,9 +151,24 @@ public final class RefereeActor extends GenericActor {
                 });
             }
 
+            getContext().unbecome();
             verifiedPlayer = null;
             verifySolution.clear();
         }
+
+        if (activePlayers.size() != 0) {
+            startNextTurn();
+        }
+    }
+
+
+    /**
+     * When the referee receives a FinishTurnMessage from a player, it starts the
+     * next turn.
+     * @param finishTurnMsg the received message.
+     */
+    private void handleFinishTurnMsg(final FinishTurnMsg finishTurnMsg) {
+        startNextTurn();
     }
 
 
