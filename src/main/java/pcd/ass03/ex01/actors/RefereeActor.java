@@ -11,10 +11,6 @@ import java.util.*;
  * Represents the entity that coordinates actions inside the match
  */
 public final class RefereeActor extends GenericActor {
-    /**
-     * Embedded Akka logger used to show information of the execution.
-     */
-    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
     /**
      * It memorizes all players.
@@ -33,6 +29,7 @@ public final class RefereeActor extends GenericActor {
     private final List<ActorRef> currentLap;
 
     private final Map<ActorRef, Boolean> verifySolution;
+    private ActorRef verifiedPlayer;
 
 
     public RefereeActor() {
@@ -50,7 +47,7 @@ public final class RefereeActor extends GenericActor {
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
                 .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
                 .match(SolutionMsg.class, this::handleSolutionMsg)
-                //.match(VerifySolutionMsg.class, this::handleVerifySolutionResponseMsg)
+                .match(VerifySolutionResponseMsg.class, this::handleVerifySolutionResponseMsg)
                 .matchAny(this::messageNotRecognized)
                 .build();
     }
@@ -70,6 +67,7 @@ public final class RefereeActor extends GenericActor {
             players.add(newPlayer);
         }
 
+        activePlayers.addAll(players);
         players.forEach(player -> {
             final StartPlayerMsg message = new StartPlayerMsg(startGameMsg.getCombinationSize(), players, getSelf());
             player.tell(message, getSelf());
@@ -109,13 +107,49 @@ public final class RefereeActor extends GenericActor {
      * @param solutionMsg the received message
      */
     private void handleSolutionMsg(final SolutionMsg solutionMsg) {
-        players.forEach(player -> {
+        verifiedPlayer = solutionMsg.getSender();
+        players.stream().filter(player -> player != verifiedPlayer).forEach(player -> {
             final VerifySolutionMsg message = new VerifySolutionMsg(
                     solutionMsg.getSender(),
                     solutionMsg.getCombinations().get(player)
             );
             player.tell(message, getSelf());
         });
+    }
+
+    /**
+     * When the referee receives VerifySolutionResponseMsg from a player, it memorizes
+     * the result; then, if all players have responded, communicate the result to the players.
+     * @param verifySolRespMsg the received message.
+     */
+    private void handleVerifySolutionResponseMsg(final VerifySolutionResponseMsg verifySolRespMsg) {
+        verifySolution.put(verifySolRespMsg.getSender(), verifySolRespMsg.isSolutionGuessed());
+
+        if (verifySolution.size() == players.size()) {
+            boolean win = true;
+            for (ActorRef player : verifySolution.keySet()) {
+                if (!verifySolution.get(player)) {
+                    win = false;
+                }
+            }
+
+            if (win) {
+                players.forEach(player -> {
+                    final WinMsg message = new WinMsg(verifiedPlayer);
+                    player.tell(message, getSelf());
+                });
+
+            } else {
+                activePlayers.remove(verifiedPlayer);
+                players.forEach(player -> {
+                    final LoseMsg message = new LoseMsg(activePlayers.size(), verifiedPlayer);
+                    player.tell(message, getSelf());
+                });
+            }
+
+            verifiedPlayer = null;
+            verifySolution.clear();
+        }
     }
 
 

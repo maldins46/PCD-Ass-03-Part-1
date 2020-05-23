@@ -1,5 +1,6 @@
 package pcd.ass03.ex01.messages;
 
+import akka.actor.ActorRef;
 import pcd.ass03.ex01.utils.Combination;
 
 /**
@@ -7,13 +8,20 @@ import pcd.ass03.ex01.utils.Combination;
  */
 
 public final class VerifySolutionResponseMsg implements Message {
-    private final Combination supposedCombination;
+    private final ActorRef sender;
+    private final boolean solutionGuessed;
 
-    public VerifySolutionResponseMsg(final Combination supposedCombination){
-        this.supposedCombination = supposedCombination;
+    public VerifySolutionResponseMsg(final ActorRef sender, final boolean solutionGuessed){
+        this.sender = sender;
+
+        this.solutionGuessed = solutionGuessed;
     }
 
-    public Combination getSupposedCombination(){
-        return supposedCombination;
+    public ActorRef getSender() {
+        return sender;
+    }
+
+    public boolean isSolutionGuessed() {
+        return solutionGuessed;
     }
 }
