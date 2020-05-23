@@ -2,6 +2,7 @@ package pcd.ass03.ex01.messages;
 
 
 import akka.actor.ActorRef;
+import pcd.ass03.ex01.utils.Combination;
 
 /**
  * Arrivata una combinazione finale, l'arbitro chiede a ogni giocatore con questo
@@ -9,13 +10,19 @@ import akka.actor.ActorRef;
  */
 
 public final class VerifySolutionMsg implements Message {
-    private final ActorRef winnerRef;
+    private final ActorRef sender;
+    private final Combination combination;
 
-    public VerifySolutionMsg(final ActorRef winnerRef){
-        this.winnerRef = winnerRef;
+    public VerifySolutionMsg(final ActorRef sender, Combination combination){
+        this.sender = sender;
+        this.combination = combination;
     }
 
-    public ActorRef getWinnerRef(){
-        return winnerRef;
+    public ActorRef getSender() {
+        return sender;
+    }
+
+    public Combination getCombination() {
+        return combination;
     }
 }

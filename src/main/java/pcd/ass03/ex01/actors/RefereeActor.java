@@ -10,7 +10,7 @@ import java.util.*;
 /**
  * Represents the entity that coordinates actions inside the match
  */
-public final class RefereeActor extends AbstractActor {
+public final class RefereeActor extends GenericActor {
     /**
      * Embedded Akka logger used to show information of the execution.
      */
@@ -32,11 +32,14 @@ public final class RefereeActor extends AbstractActor {
      */
     private final List<ActorRef> currentLap;
 
+    private final Map<ActorRef, Boolean> verifySolution;
+
 
     public RefereeActor() {
         this.players = new HashSet<>();
         this.activePlayers = new HashSet<>();
         this.currentLap = new ArrayList<>();
+        this.verifySolution = new HashMap<>();
     }
 
 
@@ -46,7 +49,8 @@ public final class RefereeActor extends AbstractActor {
                 .match(StartGameMsg.class, this::handleStartGameMsg)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
                 .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
-
+                .match(SolutionMsg.class, this::handleSolutionMsg)
+                //.match(VerifySolutionMsg.class, this::handleVerifySolutionResponseMsg)
                 .matchAny(this::messageNotRecognized)
                 .build();
     }
@@ -100,13 +104,19 @@ public final class RefereeActor extends AbstractActor {
 
 
     /**
-     * If a message has not a known type, an error will be shown.
-     * @param message the non-recognized message.
+     * When the referee receives a SolutionMsg from a player, it queries all players
+     * to know whether the solution is right.
+     * @param solutionMsg the received message
      */
-    private void messageNotRecognized(final Object message) {
-        log.error("Message not recognized: " + message);
+    private void handleSolutionMsg(final SolutionMsg solutionMsg) {
+        players.forEach(player -> {
+            final VerifySolutionMsg message = new VerifySolutionMsg(
+                    solutionMsg.getSender(),
+                    solutionMsg.getCombinations().get(player)
+            );
+            player.tell(message, getSelf());
+        });
     }
-
 
 
     /**
