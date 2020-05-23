@@ -24,12 +24,12 @@ final class CombinationImpl implements Combination {
 
 
     @Override
-    public boolean compare(final CombinationImpl toCompare) {
-        return combination.equals(toCompare.combination);
+    public boolean compare(final Combination toCompare) {
+        return combination.equals(toCompare.getCombination());
     }
 
     @Override
-    public int computeGuessedPositions(final CombinationImpl toCompare) {
+    public int computeGuessedPositions(final Combination toCompare) {
         int nOfGuessedPositions = 0;
 
         if (combWithDifferentSize(toCompare)) {
@@ -37,7 +37,7 @@ final class CombinationImpl implements Combination {
         }
 
         for (int i = 0; i < combination.size(); i++) {
-            if (combination.get(i).equals(toCompare.combination.get(i))) {
+            if (combination.get(i).equals(toCompare.getCombination().get(i))) {
                 nOfGuessedPositions++;
             }
         }
@@ -45,7 +45,7 @@ final class CombinationImpl implements Combination {
     }
 
     @Override
-    public int computeGuessedCyphers(final CombinationImpl toCompare) {
+    public int computeGuessedCyphers(final Combination toCompare) {
         int nOfGuessedCyphers = 0;
 
         if (combWithDifferentSize(toCompare)) {
@@ -53,19 +53,21 @@ final class CombinationImpl implements Combination {
         }
 
         for (int i = 0; i < combination.size(); i++) {
-            if (combination.contains(toCompare.combination.get(i))
-                    && !combination.get(i).equals(toCompare.combination.get(i))) {
+            if (combination.contains(toCompare.getCombination().get(i))
+                    && !combination.get(i).equals(toCompare.getCombination().get(i))) {
                 nOfGuessedCyphers++;
             }
         }
         return nOfGuessedCyphers;
     }
 
-    private boolean combWithDifferentSize(final CombinationImpl toCompare) {
-        return combination.size() != toCompare.combination.size();
+    private boolean combWithDifferentSize(final Combination toCompare) {
+        return combination.size() != toCompare.getCombination().size();
     }
 
     public int getCombinationSize(){
         return this.combination.size();
     }
+
+    public List<Integer> getCombination(){ return combination;}
 }

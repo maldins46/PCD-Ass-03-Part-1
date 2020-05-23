@@ -88,14 +88,14 @@ public class PlayerActor extends AbstractActor {
 
         // todo: esiste un modo per prendere il mittente di un messaggio che ti arriva ???
 
-        /*
+
         final RespondToGuessMsg message = new RespondToGuessMsg(
                 myCombination.computeGuessedCyphers(guessMsg.getCombination()),
-                myCombination.computeGuessedPositions((guessMsg.getCombination()));
+                myCombination.computeGuessedPositions((guessMsg.getCombination())));
 
         guessMsg.getSender().tell(message, getSelf());
 
-         */
+
     }
 
     /**
