@@ -1,27 +1,16 @@
 package pcd.ass03.ex01.actors;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import pcd.ass03.ex01.messages.GuessMsg;
-import pcd.ass03.ex01.messages.RespondToGuessMsg;
-import pcd.ass03.ex01.messages.StartPlayerMsg;
-import pcd.ass03.ex01.messages.StartTurnMsg;
+import pcd.ass03.ex01.messages.*;
 import pcd.ass03.ex01.utils.Combination;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 // todo: check final
 
-public class PlayerActor extends AbstractActor {
-
-    /**
-     * Embedded Akka logger used to show information of the execution.
-     * todo: instanziato nel costruttore?
-     */
-    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
+public final class PlayerActor extends GenericActor {
 
     /**
      * It memorizes all players.
@@ -55,21 +44,27 @@ public class PlayerActor extends AbstractActor {
      */
     private boolean turn;
 
+
     /**
      * costruttore
      */
-    public PlayerActor(Set<ActorRef> players, Map<ActorRef, Combination> guessedCombination, Map<ActorRef, Set<Combination>> triedCombinations, ActorRef refereeRef, Combination myCombination, boolean turn) {
-        this.players = players;
-        this.guessedCombination = guessedCombination;
-        this.triedCombinations = triedCombinations;
-        this.refereeRef = refereeRef;
-        this.myCombination = myCombination;
-        this.turn = turn;
+    public PlayerActor() {
+        this.guessedCombination = new HashMap<>();
+        this.triedCombinations = new HashMap<>();
     }
 
 
     @Override
     public Receive createReceive() {
+      return standardBehavior();
+    }
+
+
+    /**
+     * This is the actor behavior used when it is not its turn.
+     * @return the receive behavior.
+     */
+    public Receive standardBehavior() {
         return receiveBuilder()
                 .match(StartPlayerMsg.class, this::handleStartGameMsg)
                 .match(StartTurnMsg.class, this::handleStartTurnMsg)
@@ -78,25 +73,33 @@ public class PlayerActor extends AbstractActor {
                 .build();
     }
 
+
+    /**
+     * This is the actor behavior used when it is its turn.
+     * @return the receive behavior.
+     */
+    public Receive turnBehavior() {
+        return receiveBuilder()
+                .match(RespondToGuessMsg.class, this::handleRespondToGuessMsg)
+                .match(TimeoutMsg.class, this::handleTimoutMsg)
+                .matchAny(this::messageNotRecognized)
+                .build();
+    }
+
+
     /**
      * When a guessMsg arrives to the player, it will answer with
      * two numbers.
      * @param guessMsg the message
      */
-    private void handleGuessMsg(GuessMsg guessMsg) {
-
-
-        // todo: esiste un modo per prendere il mittente di un messaggio che ti arriva ???
-
-
+    private void handleGuessMsg(final GuessMsg guessMsg) {
         final RespondToGuessMsg message = new RespondToGuessMsg(
                 myCombination.computeGuessedCyphers(guessMsg.getCombination()),
                 myCombination.computeGuessedPositions((guessMsg.getCombination())));
 
         guessMsg.getSender().tell(message, getSelf());
-
-
     }
+
 
     /**
      * When a startTurnMsg arrives to the player, this actor will enable the turn.
@@ -104,37 +107,44 @@ public class PlayerActor extends AbstractActor {
      * @param startTurnMsg the message
      */
     private void handleStartTurnMsg(final StartTurnMsg startTurnMsg) {
-
-        switchTurn();
-        // Enter in the state turn = true.
+        getContext().become(turnBehavior(), true);
         final ActorRef playerToGuess = choicePlayer();
-
-        // todo: alternativa passare dentro il messaggio la lunghezza della combinazione
         final Combination combinationToGuess = choiceCombination(playerToGuess);
 
         final GuessMsg message = new GuessMsg(combinationToGuess, getSelf());
-
         playerToGuess.tell(message, getSelf());
 
-        // Enter in the state turn = false.
-        switchTurn();
     }
+
+
+    private void handleRespondToGuessMsg(final RespondToGuessMsg respondToGuessMsg) {
+        // todo
+        getContext().unbecome();
+    }
+
+
+    private void handleTimoutMsg(final TimeoutMsg timeoutMsg) {
+        // todo
+        getContext().unbecome();
+    }
+
 
     /**
      * This method choices a random combination to submit.
      * @param playerToGuess the actor to submit the combination.
      * @return the combination.
      */
-    private Combination choiceCombination(ActorRef playerToGuess) {
+    private Combination choiceCombination(final ActorRef playerToGuess) {
         Combination combinationToGuess = Combination.of(myCombination.getCombinationSize());
         final Set<Combination> testedCombination = triedCombinations.get(playerToGuess);
 
-        while(testedCombination.contains(combinationToGuess)){
+        while (testedCombination.contains(combinationToGuess)) {
             combinationToGuess = Combination.of(myCombination.getCombinationSize());
         }
 
         return combinationToGuess;
     }
+
 
     /**
      * This method choices a random player to guess his combination.
@@ -143,12 +153,13 @@ public class PlayerActor extends AbstractActor {
     private ActorRef choicePlayer() {
         ActorRef playerToGuess = players.iterator().next();
 
-        while(!guessedCombination.containsKey(playerToGuess)){
+        while (!guessedCombination.containsKey(playerToGuess)) {
             playerToGuess = players.iterator().next();
         }
 
         return playerToGuess;
     }
+
 
     /**
      * When a startPlayerMsg arrives to the player, this actor will save the ref
@@ -159,20 +170,5 @@ public class PlayerActor extends AbstractActor {
         players = startPlayerMsg.getPlayersRef();
         refereeRef = startPlayerMsg.getRefereeRef();
         myCombination = Combination.of(startPlayerMsg.getCombinationSize());
-    }
-
-    /**
-     * If a message has not a known type, an error will be shown.
-     * @param message the non-recognized message.
-     */
-    private void messageNotRecognized(final Object message) {
-        log.error("Message not recognized: " + message);
-    }
-
-    /**
-     * This method allows the player to switch on/off the turn
-     */
-    private void switchTurn(){
-        turn = !turn;
     }
 }

@@ -1,14 +1,9 @@
 package pcd.ass03.ex01.actors;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import pcd.ass03.ex01.messages.StartGameMsg;
-import pcd.ass03.ex01.messages.StartPlayerMsg;
-import pcd.ass03.ex01.messages.StartTurnMsg;
+import pcd.ass03.ex01.messages.*;
 
 import java.util.*;
 
@@ -49,6 +44,9 @@ public final class RefereeActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(StartGameMsg.class, this::handleStartGameMsg)
+                .match(StopGameMsg.class, this:: handleStopGameMsg)
+                .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
+
                 .matchAny(this::messageNotRecognized)
                 .build();
     }
@@ -77,6 +75,41 @@ public final class RefereeActor extends AbstractActor {
 
 
     /**
+     * When the referee receives a StopGameMsg from the Gui, it sends a stop message to
+     * the players and it stops himself.
+     * @param stopGameMsg the received message
+     */
+    private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
+        players.forEach(player -> {
+            final StopGameMsg message = new StopGameMsg();
+            player.tell(message, getSelf());
+        });
+
+        this.context().stop(getSelf());
+    }
+
+
+    /**
+     * When the referee receives a FinishTurnMessage from a player, it starts the
+     * next turn.
+     * @param finishTurnMsg the received message.
+     */
+    private void handleFinishTurnMsg(final FinishTurnMsg finishTurnMsg) {
+        startNextTurn();
+    }
+
+
+    /**
+     * If a message has not a known type, an error will be shown.
+     * @param message the non-recognized message.
+     */
+    private void messageNotRecognized(final Object message) {
+        log.error("Message not recognized: " + message);
+    }
+
+
+
+    /**
      * It handles the initialization of the currentLap, if necessary, and it starts the
      * next turn.
      */
@@ -88,14 +121,5 @@ public final class RefereeActor extends AbstractActor {
         }
 
         currentLap.remove(0).tell(new StartTurnMsg(), getSelf());
-    }
-
-
-    /**
-     * If a message has not a known type, an error will be shown.
-     * @param message the non-recognized message.
-     */
-    private void messageNotRecognized(final Object message) {
-        log.error("Message not recognized: " + message);
     }
 }
