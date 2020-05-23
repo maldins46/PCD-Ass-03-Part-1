@@ -5,10 +5,10 @@ import pcd.ass03.ex01.messages.*;
 import pcd.ass03.ex01.utils.Combination;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// todo: check final
 
 public final class PlayerActor extends GenericActor {
 
@@ -26,7 +26,7 @@ public final class PlayerActor extends GenericActor {
      * It memorizes the ref to the other players with all the combinations
      * that have been tested.
      */
-    private final Map<ActorRef, Set<Combination>> triedCombinations;
+    private final Map<ActorRef, List<Combination>> triedCombinations;
 
     /**
      * It memorizes the ref to the referee.
@@ -37,13 +37,6 @@ public final class PlayerActor extends GenericActor {
      * It memorizes the combination.
      */
     private Combination myCombination;
-
-    /**
-     * It memorizes the state of the actor
-     * todo: non ho capito a what a fuck serve lo stato ancora! LOL
-     */
-    private boolean turn;
-
 
     /**
      * costruttore
@@ -64,13 +57,27 @@ public final class PlayerActor extends GenericActor {
      * This is the actor behavior used when it is not its turn.
      * @return the receive behavior.
      */
-    public Receive standardBehavior() {
+    private Receive standardBehavior() {
         return receiveBuilder()
                 .match(StartPlayerMsg.class, this::handleStartGameMsg)
                 .match(StartTurnMsg.class, this::handleStartTurnMsg)
                 .match(GuessMsg.class, this::handleGuessMsg)
+                .match(VerifySolutionMsg.class, this::handleVerifySolutionMsg)
                 .matchAny(this::messageNotRecognized)
                 .build();
+    }
+
+    /**
+     * It allows the referee to check if the solution is correct.
+     * @param verifySolutionMsg the message
+     */
+    private void handleVerifySolutionMsg(VerifySolutionMsg verifySolutionMsg) {
+        boolean solutionGuessed = false;
+        if (myCombination.compare(verifySolutionMsg.getCombination())) {
+            solutionGuessed = true;
+        }
+        final VerifySolutionResponseMsg message = new VerifySolutionResponseMsg(getSelf(), solutionGuessed);
+        refereeRef.tell(message, getSelf());
     }
 
 
@@ -78,9 +85,9 @@ public final class PlayerActor extends GenericActor {
      * This is the actor behavior used when it is its turn.
      * @return the receive behavior.
      */
-    public Receive turnBehavior() {
+    private Receive turnBehavior() {
         return receiveBuilder()
-                .match(RespondToGuessMsg.class, this::handleRespondToGuessMsg)
+                .match(GuessResponseMsg.class, this::handleGuessResponseMsg)
                 .match(TimeoutMsg.class, this::handleTimoutMsg)
                 .matchAny(this::messageNotRecognized)
                 .build();
@@ -93,9 +100,9 @@ public final class PlayerActor extends GenericActor {
      * @param guessMsg the message
      */
     private void handleGuessMsg(final GuessMsg guessMsg) {
-        final RespondToGuessMsg message = new RespondToGuessMsg(
+        final GuessResponseMsg message = new GuessResponseMsg(
                 myCombination.computeGuessedCyphers(guessMsg.getCombination()),
-                myCombination.computeGuessedPositions((guessMsg.getCombination())));
+                myCombination.computeGuessedPositions((guessMsg.getCombination())), guessMsg.getSender());
 
         guessMsg.getSender().tell(message, getSelf());
     }
@@ -111,20 +118,40 @@ public final class PlayerActor extends GenericActor {
         final ActorRef playerToGuess = choicePlayer();
         final Combination combinationToGuess = choiceCombination(playerToGuess);
 
-        final GuessMsg message = new GuessMsg(combinationToGuess, getSelf());
-        playerToGuess.tell(message, getSelf());
+        triedCombinations.get(playerToGuess).add(combinationToGuess);
 
+        final GuessMsg message = new GuessMsg(combinationToGuess, getSelf());
+
+        playerToGuess.tell(message, getSelf());
     }
 
+    /**
+     * This method checks the answer of the Guess. It also allows the player
+     * to send a SolutionMsg.
+     * @param guessResponseMsg the message
+     */
+    private void handleGuessResponseMsg(final GuessResponseMsg guessResponseMsg) {
+        final List<Combination> testedCombination = triedCombinations.get(guessResponseMsg.getSender());
 
-    private void handleRespondToGuessMsg(final RespondToGuessMsg respondToGuessMsg) {
-        // todo
+        if (guessResponseMsg.getGuessedCyphers() == myCombination.getCombinationSize()) {
+            guessedCombination.put(guessResponseMsg.getSender(), testedCombination.get(testedCombination.size() - 1));
+        }
+        if (guessedCombination.size() == players.size()) {
+            final SolutionMsg message = new SolutionMsg(guessedCombination, getSelf());
+            refereeRef.tell(SolutionMsg.class, getSelf());
+        } else {
+            final FinishTurnMsg message = new FinishTurnMsg();
+            refereeRef.tell(FinishTurnMsg.class, getSelf());
+        }
+
         getContext().unbecome();
     }
 
-
+    /**
+     * This method stops the player after it receives a timeout.
+     * @param timeoutMsg the message
+     */
     private void handleTimoutMsg(final TimeoutMsg timeoutMsg) {
-        // todo
         getContext().unbecome();
     }
 
@@ -136,7 +163,7 @@ public final class PlayerActor extends GenericActor {
      */
     private Combination choiceCombination(final ActorRef playerToGuess) {
         Combination combinationToGuess = Combination.of(myCombination.getCombinationSize());
-        final Set<Combination> testedCombination = triedCombinations.get(playerToGuess);
+        final List<Combination> testedCombination = triedCombinations.get(playerToGuess);
 
         while (testedCombination.contains(combinationToGuess)) {
             combinationToGuess = Combination.of(myCombination.getCombinationSize());
@@ -168,6 +195,7 @@ public final class PlayerActor extends GenericActor {
      */
     private void handleStartGameMsg(final StartPlayerMsg startPlayerMsg) {
         players = startPlayerMsg.getPlayersRef();
+        players.remove(getSelf());
         refereeRef = startPlayerMsg.getRefereeRef();
         myCombination = Combination.of(startPlayerMsg.getCombinationSize());
     }

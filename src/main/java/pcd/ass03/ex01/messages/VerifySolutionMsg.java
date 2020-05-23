@@ -13,7 +13,7 @@ public final class VerifySolutionMsg implements Message {
     private final ActorRef sender;
     private final Combination combination;
 
-    public VerifySolutionMsg(final ActorRef sender, Combination combination){
+    public VerifySolutionMsg(final ActorRef sender, final Combination combination){
         this.sender = sender;
         this.combination = combination;
     }
