@@ -4,6 +4,10 @@ import akka.actor.AbstractActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+/**
+ * Base class for every actor.
+ * Everyone have "log" and "messageNotRecognized".
+ */
 public abstract class GenericActor extends AbstractActor {
 
     /**
