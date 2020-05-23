@@ -165,8 +165,16 @@ GuiActor
     - match LogMsg:
         1. mostra il log nella label di controllo (con invokeAndWait, almeno non si blocca)
 
+    - match WinMsg:
+        1. Mostra nella label chi ha vinto
+        2. stoppati sempre e comunque
 
+    - match LoseMsg:
+        1. Mostra label che il player ha perso
+        2. Se n.player stoppati == n.player, stoppati
 
+    - StartGameMsg
+        1. Invia lo startGameMsg all'arbitro
 
 Altre classi:
 
