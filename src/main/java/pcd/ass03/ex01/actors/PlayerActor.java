@@ -27,6 +27,7 @@ public final class PlayerActor extends GenericActor {
      * that have been tested.
      */
     private final Map<ActorRef, List<Combination>> triedCombinations;
+    // todo: perché mi da quest'errore?
 
     /**
      * It memorizes the ref to the referee.
@@ -39,7 +40,7 @@ public final class PlayerActor extends GenericActor {
     private Combination myCombination;
 
     /**
-     * costruttore
+     * costruttore.
      */
     public PlayerActor() {
         this.guessedCombination = new HashMap<>();
@@ -63,21 +64,11 @@ public final class PlayerActor extends GenericActor {
                 .match(StartTurnMsg.class, this::handleStartTurnMsg)
                 .match(GuessMsg.class, this::handleGuessMsg)
                 .match(VerifySolutionMsg.class, this::handleVerifySolutionMsg)
+                .match(WinMsg.class, this::handleWinMsg)
+                .match(StopGameMsg.class, this::handleStopGameMsg)
+                .match(LoseMsg.class, this::handleLoseMsg)
                 .matchAny(this::messageNotRecognized)
                 .build();
-    }
-
-    /**
-     * It allows the referee to check if the solution is correct.
-     * @param verifySolutionMsg the message
-     */
-    private void handleVerifySolutionMsg(VerifySolutionMsg verifySolutionMsg) {
-        boolean solutionGuessed = false;
-        if (myCombination.compare(verifySolutionMsg.getCombination())) {
-            solutionGuessed = true;
-        }
-        final VerifySolutionResponseMsg message = new VerifySolutionResponseMsg(getSelf(), solutionGuessed);
-        refereeRef.tell(message, getSelf());
     }
 
 
@@ -92,6 +83,52 @@ public final class PlayerActor extends GenericActor {
                 .matchAny(this::messageNotRecognized)
                 .build();
     }
+
+
+    /**
+     * This method does not allow to player to partecipate to the game
+     * after a failed solution.
+     * todo: cosa fa un player quando perde?
+     * todo: Come lo diciamo che non deve più giocare?
+     * todo: Serve il loser nel corpo di LoseMsg?
+     * @param loseMsg the message.
+     */
+    private void handleLoseMsg(final LoseMsg loseMsg) {
+        if (loseMsg.getnActivePlayers() == players.size()) {
+            context().stop(getSelf());
+        }
+    }
+
+    /**
+     * It stops the player when the referee sends a stopGameMsg.
+     * @param stopGameMsg the message.
+     */
+    private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
+        context().stop(getSelf());
+    }
+
+    /**
+     * It shows who is the winner.
+     * @param winMsg the message.
+     */
+    private void handleWinMsg(final WinMsg winMsg) {
+        context().stop(getSelf());
+    }
+
+
+    /**
+     * It allows the referee to check if the solution is correct.
+     * @param verifySolutionMsg the message.
+     */
+    private void handleVerifySolutionMsg(final VerifySolutionMsg verifySolutionMsg) {
+        boolean solutionGuessed = false;
+        if (myCombination.compare(verifySolutionMsg.getCombination())) {
+            solutionGuessed = true;
+        }
+        final VerifySolutionResponseMsg message = new VerifySolutionResponseMsg(getSelf(), solutionGuessed);
+        refereeRef.tell(message, getSelf());
+    }
+
 
 
     /**
