@@ -1,5 +1,7 @@
 package pcd.ass03.ex01.messages;
 
+import akka.actor.ActorRef;
+
 /**
  * Notify to referee to start the game.
  * Referee create players.
@@ -7,6 +9,11 @@ package pcd.ass03.ex01.messages;
 public final class StartGameMsg implements Message {
 
     // TODO Riferimento alla Gui del human player.
+
+    /**
+     * Reference to gui (reflection).
+     */
+    private final ActorRef guiActor;
 
     /**
      * Number of player.
@@ -39,7 +46,8 @@ public final class StartGameMsg implements Message {
      * @param humanPlayer check if is present a human player.
      * @param responseOnlyToSender check if a guess' response have to be sended only to the guessed player.
      */
-    public StartGameMsg(final int nPlayers, final int combinationSize, final boolean humanPlayer, final boolean responseOnlyToSender) {
+    public StartGameMsg(final ActorRef guiActor, final int nPlayers, final int combinationSize, final boolean humanPlayer, final boolean responseOnlyToSender) {
+        this.guiActor = guiActor;
         this.nPlayers = nPlayers;
         this.combinationSize = combinationSize;
         this.humanPlayer = humanPlayer;
@@ -79,5 +87,13 @@ public final class StartGameMsg implements Message {
      */
     public boolean isResponseOnlyToSender() {
         return responseOnlyToSender;
+    }
+
+    /**
+     * Reference to gui.
+     * @return instance of guiActor.
+     */
+    public ActorRef getGuiActor() {
+        return guiActor;
     }
 }

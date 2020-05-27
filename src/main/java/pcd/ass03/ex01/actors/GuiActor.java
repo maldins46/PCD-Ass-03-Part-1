@@ -49,7 +49,7 @@ public final class GuiActor extends GenericActor {
      * @param responseOnlyAPlayer check if a guess' response have to be sended only to the guessed player.
      */
     public void sendStartGame(final int nPlayers, final int combinationSize, final boolean humanPlayer, final boolean responseOnlyAPlayer) {
-        this.refereeActor.tell(new StartGameMsg(nPlayers, combinationSize, humanPlayer, responseOnlyAPlayer), getSelf());
+        this.refereeActor.tell(new StartGameMsg(getSelf(), nPlayers, combinationSize, humanPlayer, responseOnlyAPlayer), getSelf());
     }
 
 
@@ -66,7 +66,7 @@ public final class GuiActor extends GenericActor {
      * @param loseMsg message from RefereeActor.
      */
     private void handleLoseMsg(final LoseMsg loseMsg) {
-        if (loseMsg.getnActivePlayers() == 0) {
+        if (loseMsg.getNActivePlayers() == 0) {
             this.gameGui.finish(loseMsg);
         } else {
             // fixme check how to print his name

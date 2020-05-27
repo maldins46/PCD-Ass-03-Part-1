@@ -22,11 +22,11 @@ public final class StartPlayerMsg implements Message {
         return combinationSize;
     }
 
-    public Set<ActorRef> getPlayersRef() {
+    public Set<ActorRef> getPlayers() {
         return playersRef;
     }
 
-    public ActorRef getRefereeRef() {
+    public ActorRef getReferee() {
         return refereeRef;
     }
 }

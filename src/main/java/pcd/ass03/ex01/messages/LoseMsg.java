@@ -15,7 +15,7 @@ public final class LoseMsg implements Message {
         this.loser = loser;
     }
 
-    public int getnActivePlayers() {
+    public int getNActivePlayers() {
         return nActivePlayers;
     }
 
