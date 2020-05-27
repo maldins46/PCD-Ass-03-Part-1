@@ -4,13 +4,21 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import pcd.ass03.ex01.messages.*;
+import pcd.ass03.ex01.utils.TurnTimeout;
 
+import java.time.Duration;
 import java.util.*;
 
 /**
  * Represents the entity that coordinates actions inside the match.
  */
 public final class RefereeActor extends GenericActor {
+
+    /**
+     * Reference to the actor used to handle the gui. The reference is
+     * necessary to send log, win, and lost messages.
+     */
+    private ActorRef guiActor;
 
     /**
      * It memorizes references to all players.
@@ -41,6 +49,9 @@ public final class RefereeActor extends GenericActor {
      * a solution, relative to every player examined.
      */
     private final Map<ActorRef, Boolean> solutionResults;
+
+
+    private TurnTimeout turnTimeout;
 
 
     /**
@@ -82,9 +93,9 @@ public final class RefereeActor extends GenericActor {
      */
     private Receive defaultBehavior() {
         return receiveBuilder()
-                .match(StopGameMsg.class, this:: handleStopGameMsg)
                 .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
                 .match(SolutionMsg.class, this::handleSolutionMsg)
+                .match(StopGameMsg.class, this:: handleStopGameMsg)
                 .matchAny(this::messageNotRecognized)
                 .build();
     }
@@ -120,6 +131,7 @@ public final class RefereeActor extends GenericActor {
             players.add(newPlayer);
         }
 
+        guiActor = startGameMsg.getGuiActor();
         activePlayers.addAll(players);
         players.forEach(player -> {
             final StartPlayerMsg message = new StartPlayerMsg(startGameMsg.getCombinationSize(), players, getSelf());
@@ -191,19 +203,18 @@ public final class RefereeActor extends GenericActor {
         if (solutionResults.size() == players.size()) {
             if (isSolutionWinner()) {
                 // in this case, the verified player won. Notify this to all players.
-                players.forEach(player -> {
-                    final WinMsg message = new WinMsg(solutionSubmitter);
-                    player.tell(message, getSelf());
-                });
+                final WinMsg winMsg = new WinMsg(solutionSubmitter);
+                guiActor.tell(winMsg, getSelf());
+                players.forEach(player -> player.tell(winMsg, getSelf()));
+
 
             } else {
                 // in this case, the verified player lost. Remove it from the
                 // active players and notify it to all
                 activePlayers.remove(solutionSubmitter);
-                players.forEach(player -> {
-                    final LoseMsg message = new LoseMsg(activePlayers.size(), solutionSubmitter);
-                    player.tell(message, getSelf());
-                });
+                final LoseMsg loseMsg = new LoseMsg(activePlayers.size(), solutionSubmitter);
+                guiActor.tell(loseMsg, getSelf());
+                players.forEach(player -> player.tell(loseMsg, getSelf()));
             }
 
             // re-initializes structures and behaviors.
@@ -244,6 +255,16 @@ public final class RefereeActor extends GenericActor {
             Collections.shuffle(currentLap);
         }
 
-        currentLap.remove(0).tell(new StartTurnMsg(), getSelf());
+        ActorRef nextPlayer = currentLap.remove(0);
+        nextPlayer.tell(new StartTurnMsg(), getSelf());
+
+        turnTimeout.interrupt();
+        turnTimeout = new TurnTimeout((x) -> {
+            nextPlayer.tell(TimeoutMsg.class, getSelf());
+            return null;
+        });
+
+
+
     }
 }

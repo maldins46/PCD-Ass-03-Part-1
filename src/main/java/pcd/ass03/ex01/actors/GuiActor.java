@@ -46,7 +46,7 @@ public final class GuiActor extends GenericActor {
      * @param combinationSize length of cypher.
      */
     public void sendStartGame(final int nPlayers, final int combinationSize) {
-        this.refereeActor.tell(new StartGameMsg(nPlayers, combinationSize), getSelf());
+        this.refereeActor.tell(new StartGameMsg(getSelf(), nPlayers, combinationSize), getSelf());
     }
 
 
@@ -63,7 +63,7 @@ public final class GuiActor extends GenericActor {
      * @param loseMsg message from RefereeActor.
      */
     private void handleLoseMsg(final LoseMsg loseMsg) {
-        if (loseMsg.getnActivePlayers() == 0) {
+        if (loseMsg.getNActivePlayers() == 0) {
             this.gameGui.finish(loseMsg);
         } else {
             // fixme check how to print his name
