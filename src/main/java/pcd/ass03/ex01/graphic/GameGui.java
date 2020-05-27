@@ -5,6 +5,8 @@ import pcd.ass03.ex01.messages.Message;
 
 public interface GameGui {
 
+    int HEIGHT = 30;
+    int WEIGHT = 500;
 
     /**
      * Message log printed into a label.

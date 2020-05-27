@@ -9,7 +9,7 @@ import pcd.ass03.ex01.messages.StartGameMsg;
 import pcd.ass03.ex01.messages.WinMsg;
 
 /**
- * Actor that receive referee message and update Gui.
+ * Actor that interact with referee and update GameGui.
  */
 public final class GuiActor extends GenericActor {
 
@@ -40,13 +40,16 @@ public final class GuiActor extends GenericActor {
                 .build();
     }
 
+
     /**
-     * Send start Game to referee.
-     * @param nPlayers number of player in the game.
-     * @param combinationSize length of cypher.
+     * Send start game to referee.
+     * @param nPlayers is number of the player.
+     * @param combinationSize is the size of combination.
+     * @param humanPlayer check if is present a human player.
+     * @param responseOnlyAPlayer check if a guess' response have to be sended only to the guessed player.
      */
-    public void sendStartGame(final int nPlayers, final int combinationSize) {
-        this.refereeActor.tell(new StartGameMsg(nPlayers, combinationSize), getSelf());
+    public void sendStartGame(final int nPlayers, final int combinationSize, final boolean humanPlayer, final boolean responseOnlyAPlayer) {
+        this.refereeActor.tell(new StartGameMsg(nPlayers, combinationSize, humanPlayer, responseOnlyAPlayer), getSelf());
     }
 
 

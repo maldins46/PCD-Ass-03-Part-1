@@ -44,11 +44,23 @@ public final class GameGuiImpl implements GameGui {
      */
     private final JComboBox<Integer> playerComboBox;
 
+
+    /**
+     * CheckBox that notify if a player human is selected.
+     */
+    private final JCheckBox checkHumanPlayer = new JCheckBox();
+
+
+    /**
+     * CheckBox that check if a guess'response have to be sended at all players
+     * or only the player that send the guess.
+     */
+    private final JCheckBox responseOnlyAPlayer = new JCheckBox();
+
     /**
      * Label for log.
      */
     private final JLabel logLabel;
-
 
     /**
      * Constructor.
@@ -57,15 +69,16 @@ public final class GameGuiImpl implements GameGui {
     GameGuiImpl(final GuiActor actorGui) {
         this.guiActor = actorGui;
 
-        final Integer[] depthValues = new Integer[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
-        combinationComboBox = new JComboBox<>(depthValues);
+        final Integer[] cypherNumber = new Integer[] {1, 2, 3, 4, 5};
+        combinationComboBox = new JComboBox<>(cypherNumber);
 
-        this.playerComboBox = new JComboBox<>(depthValues);
+        final Integer[] playerNumber = new Integer[] {2, 3, 4, 5, 6, 7, 8 };
+        this.playerComboBox = new JComboBox<>(playerNumber);
 
         this.startStopButton = new JButton(START);
 
-        this.logLabel = new JLabel("You can start the game!");
-        this.logLabel.setPreferredSize(new Dimension(500, 30));
+        this.logLabel = new JLabel("Chose your settings and start the game!");
+        this.logLabel.setPreferredSize(new Dimension(GameGui.WEIGHT, GameGui.HEIGHT));
 
         this.launch();
     }
@@ -80,32 +93,24 @@ public final class GameGuiImpl implements GameGui {
         JPanel generalPanel = new JPanel();
         generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.PAGE_AXIS));
 
-
-        final JPanel playersPanel = new JPanel();
-        playersPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        playersPanel.add(new JLabel("Number of Player: "));
-        playersPanel.add(playerComboBox);
-        generalPanel.add(playersPanel);
-
-        final JPanel combinationPanel = new JPanel();
-        combinationPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        combinationPanel.add(new JLabel("Number of Cypher: "));
-        combinationPanel.add(combinationComboBox);
-        generalPanel.add(combinationPanel);
+        initPanel("Number of Player: ", playerComboBox, generalPanel);
+        initPanel("Number of Cypher: ", combinationComboBox, generalPanel);
+        initPanel("Do you want a human player? ", checkHumanPlayer, generalPanel);
+        initPanel("Do you want to send guess' response only to the sender player? ", responseOnlyAPlayer, generalPanel);
 
         generalPanel.add(logLabel);
 
         startStopButton.addActionListener((e) -> {
             if (startStopButton.getText().equals(START)) {
-                playerComboBox.setEnabled(false);
-                combinationComboBox.setEnabled(false);
-                startStopButton.setText(STOP);
+                this.callStart();
 
-                // start Game.
-                this.guiActor.sendStartGame(this.getPlayersNumber(), this.getCombinationSize());
-                // todo create new JFrame for player
+                this.guiActor.sendStartGame(this.getPlayersNumber(),
+                                            this.getCombinationSize(),
+                                            this.getCheckHumanPlayer(),
+                                            this.getResponseOnlyAPlayer());
+                // todo create new JFrame for human player
             } else {
-                this.finishButton();
+                this.callFinish();
             }
         });
         generalPanel.add(startStopButton);
@@ -123,14 +128,26 @@ public final class GameGuiImpl implements GameGui {
         mainFrame.setVisible(true);
     }
 
+    /**
+     * Blocked the game.
+     * It's called when the game is started.
+     */
+    private void callStart() {
+        playerComboBox.setEnabled(false);
+        combinationComboBox.setEnabled(false);
+        checkHumanPlayer.setEnabled(false);
+        startStopButton.setText(STOP);
+    }
+
 
     /**
      * Init the game.
      * It's called when the game is finished.
      */
-    private void finishButton() {
+    private void callFinish() {
         playerComboBox.setEnabled(true);
         combinationComboBox.setEnabled(true);
+        checkHumanPlayer.setEnabled(true);
         startStopButton.setText(START);
     }
 
@@ -143,7 +160,7 @@ public final class GameGuiImpl implements GameGui {
 
     @Override
     public void finish(final Message msg) {
-        this.finishButton();
+        this.callFinish();
         if (msg instanceof WinMsg) {
             this.update("Player " + ((WinMsg) msg).getWinnerRef() + " have won the game!");
         } else {
@@ -158,5 +175,27 @@ public final class GameGuiImpl implements GameGui {
 
     private int getCombinationSize() {
         return (combinationComboBox.getSelectedItem() != null) ? (Integer) combinationComboBox.getSelectedItem() : 1;
+    }
+
+    private boolean getCheckHumanPlayer() {
+        return checkHumanPlayer.isSelected();
+    }
+
+    private boolean getResponseOnlyAPlayer() {
+        return responseOnlyAPlayer.isSelected();
+    }
+
+    /**
+     * Initialize every panel in the Gui.
+     * @param labelName is the label's name.
+     * @param panelComponent is the component to add at the panel.
+     * @param panelToAdd is the general panel to add.
+     */
+    private void initPanel(final String labelName, final JComponent panelComponent, final JPanel panelToAdd) {
+        final JPanel newPanel = new JPanel();
+        newPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        newPanel.add(new JLabel(labelName));
+        newPanel.add(panelComponent);
+        panelToAdd.add(newPanel);
     }
 }
