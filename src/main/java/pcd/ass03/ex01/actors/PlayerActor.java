@@ -1,5 +1,6 @@
 package pcd.ass03.ex01.actors;
 
+import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import pcd.ass03.ex01.messages.*;
 import pcd.ass03.ex01.utils.Combination;
@@ -8,7 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
-public final class PlayerActor extends GenericActor {
+public final class PlayerActor extends AbstractLoggingActor {
 
     /**
      * It memorizes all players. It is used a list because it is simpler
@@ -26,7 +27,6 @@ public final class PlayerActor extends GenericActor {
      * that have been tested.
      */
     private final Map<ActorRef, List<Combination>> triedCombinations;
-    // todo: perché mi da quest'errore?
 
     /**
      * It memorizes the ref to the referee.
@@ -42,7 +42,7 @@ public final class PlayerActor extends GenericActor {
 
 
     /**
-     * costruttore.
+     * Default player constructor.
      */
     public PlayerActor() {
         this.players = new ArrayList<>();
@@ -61,7 +61,7 @@ public final class PlayerActor extends GenericActor {
         return receiveBuilder()
                 .match(StartPlayerMsg.class, this::handleStartGameMsg)
                 .match(StopGameMsg.class, this::handleStopGameMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -80,7 +80,7 @@ public final class PlayerActor extends GenericActor {
                 .match(WinMsg.class, this::handleWinMsg)
                 .match(StopGameMsg.class, this::handleStopGameMsg)
                 .match(LoseMsg.class, this::handleLoseMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -93,7 +93,7 @@ public final class PlayerActor extends GenericActor {
         return receiveBuilder()
                 .match(GuessResponseMsg.class, this::handleGuessResponseMsg)
                 .match(TimeoutMsg.class, this::handleTimoutMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -105,7 +105,7 @@ public final class PlayerActor extends GenericActor {
                 .match(WinMsg.class, this::handleWinMsg)
                 .match(LoseMsg.class, this::handleLoseMsg)
                 .match(StopGameMsg.class, this::handleStopGameMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -115,7 +115,7 @@ public final class PlayerActor extends GenericActor {
      * @param startPlayerMsg the message
      */
     private void handleStartGameMsg(final StartPlayerMsg startPlayerMsg) {
-        getContext().become(defaultBehavior(), true);
+        getContext().become(defaultBehavior());
 
         players = startPlayerMsg.getPlayers().stream()
                 .filter(player -> player != getSelf()).collect(Collectors.toList());
@@ -124,6 +124,7 @@ public final class PlayerActor extends GenericActor {
 
         referee = startPlayerMsg.getReferee();
         combination = Combination.of(startPlayerMsg.getCombinationSize());
+        log().info("Started, combination is " + combination.getCombination().toString());
     }
 
 
@@ -138,7 +139,7 @@ public final class PlayerActor extends GenericActor {
         }
 
         if (loseMsg.getLoser().equals(getSelf())) {
-            getContext().become(lostBehavior(), true);
+            getContext().become(lostBehavior());
             loser = true;
         }
     }
@@ -181,6 +182,7 @@ public final class PlayerActor extends GenericActor {
      * @param guessMsg the message
      */
     private void handleGuessMsg(final GuessMsg guessMsg) {
+        log().info("Received guess message from " + guessMsg.getSender().path().name() + "; compare and response");
         final GuessResponseMsg message = new GuessResponseMsg(
                 combination.computeGuessedCyphers(guessMsg.getCombination()),
                 combination.computeGuessedPositions((guessMsg.getCombination())), guessMsg.getSender());
@@ -195,13 +197,14 @@ public final class PlayerActor extends GenericActor {
      * @param startTurnMsg the message
      */
     private void handleStartTurnMsg(final StartTurnMsg startTurnMsg) {
-        getContext().become(turnBehavior(), true);
+        getContext().become(turnBehavior());
 
         final ActorRef playerToGuess = choosePlayer();
         final Combination combinationToGuess = chooseCombination(playerToGuess);
 
         triedCombinations.get(playerToGuess).add(combinationToGuess);
 
+        log().info("Turn started, sent guess msg to " + playerToGuess.path().name());
         final GuessMsg guessMsg = new GuessMsg(combinationToGuess, getSelf());
         playerToGuess.tell(guessMsg, getSelf());
     }
@@ -213,6 +216,7 @@ public final class PlayerActor extends GenericActor {
      * @param guessRespMsg the message
      */
     private void handleGuessResponseMsg(final GuessResponseMsg guessRespMsg) {
+        log().info("Received guess response. Finishing turn");
         getContext().unbecome();
 
         final List<Combination> testedCombsForPlayer = triedCombinations.get(guessRespMsg.getSender());
@@ -268,7 +272,7 @@ public final class PlayerActor extends GenericActor {
         Collections.shuffle(players);
 
         ActorRef playerToGuess = players.iterator().next();
-        while (!guessedCombination.containsKey(playerToGuess)) {
+        while (guessedCombination.containsKey(playerToGuess)) {
             playerToGuess = players.iterator().next();
         }
 

@@ -1,17 +1,15 @@
 package pcd.ass03.ex01.actors;
 
+import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import pcd.ass03.ex01.graphic.GameGui;
-import pcd.ass03.ex01.messages.LogMsg;
-import pcd.ass03.ex01.messages.LoseMsg;
-import pcd.ass03.ex01.messages.StartGameMsg;
-import pcd.ass03.ex01.messages.WinMsg;
+import pcd.ass03.ex01.messages.*;
 
 /**
  * Actor that interact with referee and update GameGui.
  */
-public final class GuiActor extends GenericActor {
+public final class GuiActor extends AbstractLoggingActor {
 
     /**
      * Reference to Gui's game.
@@ -44,7 +42,7 @@ public final class GuiActor extends GenericActor {
                 .match(LogMsg.class, this::handleLogMsg)
                 .match(WinMsg.class, this::handleWinMsg)
                 .match(LoseMsg.class, this::handleLoseMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -61,6 +59,15 @@ public final class GuiActor extends GenericActor {
                 gameGui.respondsOnlyToTheGuesser()
         );
         this.refereeActor.tell(startGameMsg, getSelf());
+    }
+
+
+    /**
+     * Sena a stog game message to the referee, aborting the execution of it.
+     */
+    public void sendStopGameMessage() {
+        final StopGameMsg stopGameMsg = new StopGameMsg();
+        this.refereeActor.tell(stopGameMsg, getSelf());
     }
 
 

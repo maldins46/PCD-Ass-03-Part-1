@@ -1,22 +1,22 @@
 package pcd.ass03.ex01.actors;
 
+import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import pcd.ass03.ex01.messages.*;
 import pcd.ass03.ex01.utils.TurnTimeout;
 
-import java.time.Duration;
 import java.util.*;
 
 /**
  * Represents the entity that coordinates actions inside the match.
  */
-public final class RefereeActor extends GenericActor {
+public final class RefereeActor extends AbstractLoggingActor {
 
     /**
      * Reference to the actor used to handle the gui. The reference is
-     * necessary to send log, win, and lost messages.
+     * necessary to send log().info, win, and lost messages.
      */
     private ActorRef guiActor;
 
@@ -84,7 +84,7 @@ public final class RefereeActor extends GenericActor {
         return receiveBuilder()
                 .match(StartGameMsg.class, this::handleStartGameMsg)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -100,7 +100,7 @@ public final class RefereeActor extends GenericActor {
                 .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
                 .match(SolutionMsg.class, this::handleSolutionMsg)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -115,7 +115,7 @@ public final class RefereeActor extends GenericActor {
         return receiveBuilder()
                 .match(VerifySolutionResponseMsg.class, this::handleVerifySolutionResponseMsg)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
-                .matchAny(this::messageNotRecognized)
+                .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -126,6 +126,8 @@ public final class RefereeActor extends GenericActor {
      * @param startGameMsg the received message.
      */
     private void handleStartGameMsg(final StartGameMsg startGameMsg) {
+        getContext().become(defaultBehavior());
+
         final ActorSystem system = this.getContext().getSystem();
 
         for (int i = 0; i < startGameMsg.getnPlayers(); i++) {
@@ -142,8 +144,8 @@ public final class RefereeActor extends GenericActor {
             player.tell(message, getSelf());
         });
 
+        log().info("Referee started, starting players");
         startNextTurn();
-        getContext().become(defaultBehavior(), true);
     }
 
 
@@ -153,6 +155,7 @@ public final class RefereeActor extends GenericActor {
      * @param stopGameMsg the received message.
      */
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
+        log().info("Received stopMsg, aborting");
         players.forEach(player -> {
             final StopGameMsg message = new StopGameMsg();
             player.tell(message, getSelf());
@@ -168,6 +171,7 @@ public final class RefereeActor extends GenericActor {
      * @param finishTurnMsg the received message.
      */
     private void handleFinishTurnMsg(final FinishTurnMsg finishTurnMsg) {
+        log().info("Turn finished, starting a new one");
         startNextTurn();
     }
 
@@ -180,7 +184,8 @@ public final class RefereeActor extends GenericActor {
      * @param solutionMsg the received message.
      */
     private void handleSolutionMsg(final SolutionMsg solutionMsg) {
-        getContext().become(verifySolutionBehavior(), true);
+        log().info("Someone sent a solution, start verifying");
+        getContext().become(verifySolutionBehavior());
 
         solutionSubmitter = solutionMsg.getSender();
         players.stream().filter(player -> player != solutionSubmitter).forEach(player -> {
@@ -201,6 +206,7 @@ public final class RefereeActor extends GenericActor {
      * @param verifySolRespMsg the received message.
      */
     private void handleVerifySolutionResponseMsg(final VerifySolutionResponseMsg verifySolRespMsg) {
+        log().info("Player responded to a verify solution msg");
         solutionResults.put(verifySolRespMsg.getSender(), verifySolRespMsg.isSolutionGuessed());
 
         // this means that all solution results have been received
@@ -262,13 +268,13 @@ public final class RefereeActor extends GenericActor {
         ActorRef nextPlayer = currentLap.remove(0);
         nextPlayer.tell(new StartTurnMsg(), getSelf());
 
-        turnTimeout.interrupt();
+        if (turnTimeout != null) {
+            turnTimeout.interrupt();
+        }
+
         turnTimeout = new TurnTimeout((x) -> {
             nextPlayer.tell(TimeoutMsg.class, getSelf());
             return null;
         });
-
-
-
     }
 }

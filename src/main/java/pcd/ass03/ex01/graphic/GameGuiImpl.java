@@ -116,6 +116,7 @@ public final class GameGuiImpl implements GameGui {
                 if (isGameStarted) {
                     isGameStarted = false;
                     enableGuiComponents();
+                    guiActor.sendStopGameMessage();
 
                 } else {
                     isGameStarted = true;
