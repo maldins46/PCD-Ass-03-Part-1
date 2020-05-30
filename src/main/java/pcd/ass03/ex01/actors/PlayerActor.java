@@ -85,8 +85,6 @@ public final class PlayerActor extends GenericActor {
     }
 
 
-
-
     /**
      * This is the actor behavior used when it is its turn.
      * @return the receive behavior.
@@ -98,6 +96,7 @@ public final class PlayerActor extends GenericActor {
                 .matchAny(this::messageNotRecognized)
                 .build();
     }
+
 
     private Receive lostBehavior() {
         return receiveBuilder()
@@ -176,8 +175,6 @@ public final class PlayerActor extends GenericActor {
     }
 
 
-
-
     /**
      * When a guessMsg arrives to the player, it will answer with
      * two numbers.
@@ -209,6 +206,7 @@ public final class PlayerActor extends GenericActor {
         playerToGuess.tell(guessMsg, getSelf());
     }
 
+
     /**
      * This method checks the answer of the Guess. It also allows the player
      * to send a SolutionMsg.
@@ -218,7 +216,6 @@ public final class PlayerActor extends GenericActor {
         getContext().unbecome();
 
         final List<Combination> testedCombsForPlayer = triedCombinations.get(guessRespMsg.getSender());
-
 
         if (guessRespMsg.getGuessedCyphers() == combination.getCombinationSize()
                 && guessRespMsg.getGuessedPositions() == 0) {

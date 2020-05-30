@@ -23,15 +23,23 @@ public final class GuiActor extends GenericActor {
      */
     private ActorRef refereeActor;
 
+
+    /**
+     * During the pre-start, the concrete gui is created and shown to the user,
+     * and the referee actor is created (but not initialized).
+     * The initialization of the actor is done after the user presses start.
+     */
     @Override
     public void preStart() {
         this.gameGui = GameGui.of(this);
+        this.gameGui.launch();
         this.refereeActor = getContext().getSystem().actorOf(Props.create(RefereeActor.class), "Referee");
     }
 
 
     @Override
     public Receive createReceive() {
+        // the standard behavior of the actor
         return receiveBuilder()
                 .match(LogMsg.class, this::handleLogMsg)
                 .match(WinMsg.class, this::handleWinMsg)
@@ -42,14 +50,17 @@ public final class GuiActor extends GenericActor {
 
 
     /**
-     * Send start game to referee.
-     * @param nPlayers is number of the player.
-     * @param combinationSize is the size of combination.
-     * @param humanPlayer check if is present a human player.
-     * @param responseOnlyAPlayer check if a guess' response have to be sended only to the guessed player.
+     * Send start game message to referee, that also initializes the players.
      */
-    public void sendStartGame(final int nPlayers, final int combinationSize, final boolean humanPlayer, final boolean responseOnlyAPlayer) {
-        this.refereeActor.tell(new StartGameMsg(getSelf(), nPlayers, combinationSize, humanPlayer, responseOnlyAPlayer), getSelf());
+    public void sendStartGameMessage() {
+        final StartGameMsg startGameMsg = new StartGameMsg(
+                getSelf(),
+                gameGui.getNPlayers(),
+                gameGui.getCombSize(),
+                gameGui.hasHumanPlayer(),
+                gameGui.respondsOnlyToTheGuesser()
+        );
+        this.refereeActor.tell(startGameMsg, getSelf());
     }
 
 
@@ -58,8 +69,9 @@ public final class GuiActor extends GenericActor {
      * @param winMsg message from RefereeActor
      */
     private void handleWinMsg(final WinMsg winMsg) {
-        this.gameGui.finish(winMsg);
+        this.gameGui.finishMatch(winMsg);
     }
+
 
     /**
      * Handle to update Gui with the game winner.
@@ -67,10 +79,9 @@ public final class GuiActor extends GenericActor {
      */
     private void handleLoseMsg(final LoseMsg loseMsg) {
         if (loseMsg.getNActivePlayers() == 0) {
-            this.gameGui.finish(loseMsg);
+            this.gameGui.finishMatch(loseMsg);
         } else {
-            // fixme check how to print his name
-            this.handleLogMsg(new LogMsg("Player " + loseMsg.getLoser() + " have lost!"));
+            this.gameGui.printLog("Player " + loseMsg.getLoser() + " have lost!");
         }
     }
 
@@ -81,7 +92,7 @@ public final class GuiActor extends GenericActor {
      * @param logMsg.
      */
     private void handleLogMsg(final LogMsg logMsg) {
-        this.gameGui.update(logMsg.getLog());
+        this.gameGui.printLog(logMsg.getLog());
     }
 
 }

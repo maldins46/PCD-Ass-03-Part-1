@@ -11,109 +11,119 @@ import java.awt.event.WindowEvent;
 
 public final class GameGuiImpl implements GameGui {
 
-    /**
-     * Start for button button.
-     */
-    private static String START = "Start";
-
-
-    /**
-     * Stop for button.
-     */
-    private static String STOP = "Stop";
+    private static final int WIDTH = 500;
+    private static final int HEIGHT = 30;
+    private static final String START_LABEL = "Start";
+    private static final String STOP_LABEL = "Stop";
+    private static final Integer[] COMB_SIZE_ITEMS = new Integer[] {1, 2, 3, 4, 5};
+    private static final Integer[] N_PLAYERS_ITEMS = new Integer[] {2, 3, 4, 5, 6, 7, 8};
+    private static final int DEFAULT_N_PLAYERS = 2;
+    private static final int DEFAULT_COMB_SIZE = 4;
 
     /**
-     * Reference to GuiActor.
+     * Reference to GuiActor. Used to interact with the rest of the game.
      */
     private final GuiActor guiActor;
 
     /**
-     * ButtonStart or stop.
+     * The main frame of the gui.
      */
-    private JButton startStopButton;
+    private final JFrame mainFrame;
+
+    /**
+     * Button used to start and force stop the game.
+     */
+    private final JButton startStopButton;
 
 
     /**
-     * Range of cypher (M).
+     * ComboBox used to select the size of the combinations used by each player
+     * of the game.
      */
-    private final JComboBox<Integer> combinationComboBox;
+    private final JComboBox<Integer> combSizeComboBox;
 
 
     /**
-     * Range of cypher (M).
+     * ComboBox used to select the number of players participating to the game.
      */
-    private final JComboBox<Integer> playerComboBox;
+    private final JComboBox<Integer> nPlayersComboBox;
 
 
     /**
-     * CheckBox that notify if a player human is selected.
+     * CheckBox used to select whether to participate directly to the game as
+     * a player.
      */
-    private final JCheckBox checkHumanPlayer = new JCheckBox();
+    private final JCheckBox humanPlayerCheckBox;
 
 
     /**
-     * CheckBox that check if a guess'response have to be sended at all players
-     * or only the player that send the guess.
+     * CheckBox used to select an optinal project constraint: set to true if
+     * a guess' response have to be sent to all players,or only to the
+     * player that sent the guess.
      */
-    private final JCheckBox responseOnlyAPlayer = new JCheckBox();
+    private final JCheckBox respOnlyToGuesserCheckBox;
+
 
     /**
-     * Label for log.
+     * Label used to show the last retrieved log. The complete log is
+     * displayed directly into the shell.
      */
     private final JLabel logLabel;
 
     /**
-     * Constructor.
-     * @param actorGui reference to his actor
+     * Keeps track of whether the game has started.
+     */
+    private boolean isGameStarted;
+
+
+    /**
+     * Default constructor of the class. It initializes the frame, without
+     * launching it.
+     * @param actorGui reference to the gui actor.
      */
     GameGuiImpl(final GuiActor actorGui) {
         this.guiActor = actorGui;
 
-        final Integer[] cypherNumber = new Integer[] {1, 2, 3, 4, 5};
-        combinationComboBox = new JComboBox<>(cypherNumber);
+        this.isGameStarted = false;
+        this.combSizeComboBox = new JComboBox<>(COMB_SIZE_ITEMS);
+        this.combSizeComboBox.setSelectedIndex(DEFAULT_COMB_SIZE);
+        this.nPlayersComboBox = new JComboBox<>(N_PLAYERS_ITEMS);
+        this.nPlayersComboBox.setSelectedItem(DEFAULT_N_PLAYERS);
 
-        final Integer[] playerNumber = new Integer[] {2, 3, 4, 5, 6, 7, 8 };
-        this.playerComboBox = new JComboBox<>(playerNumber);
+        this.startStopButton = new JButton(START_LABEL);
+        this.humanPlayerCheckBox = new JCheckBox();
+        this.respOnlyToGuesserCheckBox = new JCheckBox();
 
-        this.startStopButton = new JButton(START);
+        this.logLabel = new JLabel("Choose your settings and start the game!");
+        this.logLabel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
 
-        this.logLabel = new JLabel("Chose your settings and start the game!");
-        this.logLabel.setPreferredSize(new Dimension(GameGui.WEIGHT, GameGui.HEIGHT));
+        this.mainFrame = new JFrame();
+        this.mainFrame.setTitle("PCD - Assignment 03 - Maldini, Gorini, Angelini - MasterMind");
+        this.mainFrame.setResizable(false);
 
-        this.launch();
-    }
-
-
-    private void launch() {
-        JFrame mainFrame = new JFrame();
-
-        mainFrame.setTitle("PCD - Assignment 03 - Maldini, Gorini, Angelini - MasterMind");
-        mainFrame.setResizable(false);
-
-        JPanel generalPanel = new JPanel();
+        final JPanel generalPanel = new JPanel();
         generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.PAGE_AXIS));
 
-        initPanel("Number of Player: ", playerComboBox, generalPanel);
-        initPanel("Number of Cypher: ", combinationComboBox, generalPanel);
-        initPanel("Do you want a human player? ", checkHumanPlayer, generalPanel);
-        initPanel("Do you want to send guess' response only to the sender player? ", responseOnlyAPlayer, generalPanel);
-
+        generalPanel.add(generateSinglePanel("Number of players: ", nPlayersComboBox));
+        generalPanel.add(generateSinglePanel("Combination size: ", combSizeComboBox));
+        generalPanel.add(generateSinglePanel("Do you want a human player? ", humanPlayerCheckBox));
+        generalPanel.add(generateSinglePanel("Do you want to send guess' response only to the sender player? ", respOnlyToGuesserCheckBox));
         generalPanel.add(logLabel);
+        generalPanel.add(startStopButton);
 
         startStopButton.addActionListener((e) -> {
-            if (startStopButton.getText().equals(START)) {
-                this.callStart();
+            SwingUtilities.invokeLater(() -> {
+                if (isGameStarted) {
+                    isGameStarted = false;
+                    enableGuiComponents();
 
-                this.guiActor.sendStartGame(this.getPlayersNumber(),
-                                            this.getCombinationSize(),
-                                            this.getCheckHumanPlayer(),
-                                            this.getResponseOnlyAPlayer());
-                // todo create new JFrame for human player
-            } else {
-                this.callFinish();
-            }
+                } else {
+                    isGameStarted = true;
+                    disableGuiComponents();
+                    guiActor.sendStartGameMessage();
+                }
+            });
         });
-        generalPanel.add(startStopButton);
 
         mainFrame.setContentPane(generalPanel);
         mainFrame.pack();
@@ -125,77 +135,97 @@ public final class GameGuiImpl implements GameGui {
                 System.exit(-1);
             }
         });
-        mainFrame.setVisible(true);
-    }
 
-    /**
-     * Blocked the game.
-     * It's called when the game is started.
-     */
-    private void callStart() {
-        playerComboBox.setEnabled(false);
-        combinationComboBox.setEnabled(false);
-        checkHumanPlayer.setEnabled(false);
-        startStopButton.setText(STOP);
     }
 
 
     /**
-     * Init the game.
-     * It's called when the game is finished.
+     * Initializes a single panel of the gui, composed by a label to describe
+     * it and an interactive component.
+     * @param description is the label's name.
+     * @param interactiveComp is the component to add at the panel.
+     * @return the fresh new panel.
      */
-    private void callFinish() {
-        playerComboBox.setEnabled(true);
-        combinationComboBox.setEnabled(true);
-        checkHumanPlayer.setEnabled(true);
-        startStopButton.setText(START);
+    private JPanel generateSinglePanel(final String description, final JComponent interactiveComp) {
+        final JPanel newPanel = new JPanel();
+        newPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        newPanel.add(new JLabel(description));
+        newPanel.add(interactiveComp);
+        return newPanel;
     }
 
 
     @Override
-    public void update(final String logMsg) {
+    public void launch() {
+        mainFrame.setVisible(true);
+    }
+
+
+    @Override
+    public void printLog(final String logMsg) {
         this.logLabel.setText(logMsg);
     }
 
 
     @Override
-    public void finish(final Message msg) {
-        this.callFinish();
+    public void finishMatch(final Message msg) {
+        this.enableGuiComponents();
         if (msg instanceof WinMsg) {
-            this.update("Player " + ((WinMsg) msg).getWinnerRef() + " have won the game!");
+            this.printLog("Player " + ((WinMsg) msg).getWinnerRef() + " have won the game!");
         } else {
-            this.update("All players have lost!");
+            this.printLog("All players have lost!");
         }
     }
 
-    private int getPlayersNumber() {
-        return (playerComboBox.getSelectedItem() != null) ? (Integer) playerComboBox.getSelectedItem() : 1;
+
+    @Override
+    public int getNPlayers() {
+        return (nPlayersComboBox.getSelectedItem() != null)
+                ? (Integer) nPlayersComboBox.getSelectedItem()
+                : DEFAULT_N_PLAYERS;
     }
 
 
-    private int getCombinationSize() {
-        return (combinationComboBox.getSelectedItem() != null) ? (Integer) combinationComboBox.getSelectedItem() : 1;
+    @Override
+    public int getCombSize() {
+        return (combSizeComboBox.getSelectedItem() != null)
+                ? (Integer) combSizeComboBox.getSelectedItem()
+                : DEFAULT_COMB_SIZE;
     }
 
-    private boolean getCheckHumanPlayer() {
-        return checkHumanPlayer.isSelected();
+
+    @Override
+    public boolean hasHumanPlayer() {
+        return humanPlayerCheckBox.isSelected();
     }
 
-    private boolean getResponseOnlyAPlayer() {
-        return responseOnlyAPlayer.isSelected();
+
+    @Override
+    public boolean respondsOnlyToTheGuesser() {
+        return respOnlyToGuesserCheckBox.isSelected();
     }
+
 
     /**
-     * Initialize every panel in the Gui.
-     * @param labelName is the label's name.
-     * @param panelComponent is the component to add at the panel.
-     * @param panelToAdd is the general panel to add.
+     * Disables interactive components of the gui, used for give the game
+     * configuration. It's called when the game is started.
      */
-    private void initPanel(final String labelName, final JComponent panelComponent, final JPanel panelToAdd) {
-        final JPanel newPanel = new JPanel();
-        newPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        newPanel.add(new JLabel(labelName));
-        newPanel.add(panelComponent);
-        panelToAdd.add(newPanel);
+    private void disableGuiComponents() {
+        nPlayersComboBox.setEnabled(false);
+        combSizeComboBox.setEnabled(false);
+        humanPlayerCheckBox.setEnabled(false);
+        startStopButton.setText(STOP_LABEL);
+    }
+
+
+    /**
+     * Enables interactive components of the gui, after the end of the
+     * game.
+     */
+    private void enableGuiComponents() {
+        nPlayersComboBox.setEnabled(true);
+        combSizeComboBox.setEnabled(true);
+        humanPlayerCheckBox.setEnabled(true);
+        startStopButton.setText(START_LABEL);
     }
 }

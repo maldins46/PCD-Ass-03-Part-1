@@ -51,6 +51,10 @@ public final class RefereeActor extends GenericActor {
     private final Map<ActorRef, Boolean> solutionResults;
 
 
+    /**
+     * Keeps track of the turn timeout: if a player do not terminate
+     * the turn before the timeout, a TimeoutMsg will be sent to it.
+     */
     private TurnTimeout turnTimeout;
 
 
