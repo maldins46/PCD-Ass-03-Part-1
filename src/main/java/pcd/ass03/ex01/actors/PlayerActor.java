@@ -2,6 +2,7 @@ package pcd.ass03.ex01.actors;
 
 import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import pcd.ass03.ex01.messages.*;
 import pcd.ass03.ex01.utils.Combination;
 
@@ -137,7 +138,8 @@ public final class PlayerActor extends AbstractLoggingActor {
      */
     private void handleLoseMsg(final LoseMsg loseMsg) {
         if (loseMsg.getNActivePlayers() == 0) {
-            getContext().stop(getSelf());
+            log().info("Received loseMsg, every player have lost, aborting " + getSelf().path().name());
+            getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
 
         if (loseMsg.getLoser().equals(getSelf())) {
@@ -152,7 +154,8 @@ public final class PlayerActor extends AbstractLoggingActor {
      * @param stopGameMsg the message.
      */
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
-        getContext().stop(getSelf());
+        log().info("Received stopMsg, aborting " + getSelf().path().name());
+        getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
 
@@ -161,7 +164,9 @@ public final class PlayerActor extends AbstractLoggingActor {
      * @param winMsg the message.
      */
     private void handleWinMsg(final WinMsg winMsg) {
-        getContext().stop(getSelf());
+        // todo se sono umano?
+        log().info("Received winMsg, aborting " + getSelf().path().name());
+        getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
 

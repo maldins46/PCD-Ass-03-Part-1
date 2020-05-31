@@ -221,9 +221,11 @@ public final class GameGuiImpl implements GameGui {
      * configuration. It's called when the game is started.
      */
     private void disableGuiComponents() {
+
         nPlayersComboBox.setEnabled(false);
         combSizeComboBox.setEnabled(false);
         humanPlayerCheckBox.setEnabled(false);
+        respOnlyToGuesserCheckBox.setEnabled(false);
         startStopButton.setText(STOP_LABEL);
     }
 
@@ -236,6 +238,7 @@ public final class GameGuiImpl implements GameGui {
         nPlayersComboBox.setEnabled(true);
         combSizeComboBox.setEnabled(true);
         humanPlayerCheckBox.setEnabled(true);
+        respOnlyToGuesserCheckBox.setEnabled(true);
         startStopButton.setText(START_LABEL);
     }
 }

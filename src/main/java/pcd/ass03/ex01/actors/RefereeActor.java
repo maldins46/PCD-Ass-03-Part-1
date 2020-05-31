@@ -152,12 +152,12 @@ public final class RefereeActor extends AbstractLoggingActor {
      * @param stopGameMsg the received message.
      */
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
-        log().info("Received stopMsg, aborting");
+        log().info("Received stopMsg, aborting " + getSelf().path().name());
         players.forEach(player -> {
             player.tell(new StopGameMsg(), getSelf());
         });
 
-        this.getContext().stop(getSelf());
+        getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
     /**
@@ -243,6 +243,8 @@ public final class RefereeActor extends AbstractLoggingActor {
             startNextTurn();
         } else {
             getContext().cancelReceiveTimeout();
+            log().info("Match finished, aborting " + getSelf().path().name());
+            getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
     }
 
