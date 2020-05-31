@@ -91,7 +91,7 @@ public final class RefereeActor extends AbstractLoggingActor {
      * or solution messages (or force stop messages).
      * @return The default behavior of the referee.
      */
-    private Receive turnBehavior() {
+    private Receive defaultBehavior() {
         return receiveBuilder()
                 .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
                 .match(SolutionMsg.class, this::handleSolutionMsg)
@@ -123,7 +123,7 @@ public final class RefereeActor extends AbstractLoggingActor {
      * @param startGameMsg the received message.
      */
     private void handleStartGameMsg(final StartGameMsg startGameMsg) {
-        getContext().become(turnBehavior());
+        getContext().become(defaultBehavior());
 
         final ActorSystem system = this.getContext().getSystem();
 
@@ -137,7 +137,12 @@ public final class RefereeActor extends AbstractLoggingActor {
         guiActor = startGameMsg.getGuiActor();
         activePlayers.addAll(players);
         players.forEach(player -> {
-            final StartPlayerMsg message = new StartPlayerMsg(startGameMsg.getCombinationSize(), players, getSelf());
+            final StartPlayerMsg message = new StartPlayerMsg(
+                    startGameMsg.getCombinationSize(),
+                    players,
+                    getSelf(),
+                    startGameMsg.isResponseOnlyToSender()
+            );
             player.tell(message, getSelf());
         });
 
@@ -236,7 +241,8 @@ public final class RefereeActor extends AbstractLoggingActor {
             // re-initializes structures and behaviors.
             solutionSubmitter = null;
             solutionResults.clear();
-            getContext().unbecome();
+            // getContext().unbecome(); // fixme
+            getContext().become(defaultBehavior());
         }
 
         if (activePlayers.size() > 0) {

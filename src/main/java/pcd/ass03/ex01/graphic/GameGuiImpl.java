@@ -221,7 +221,6 @@ public final class GameGuiImpl implements GameGui {
      * configuration. It's called when the game is started.
      */
     private void disableGuiComponents() {
-
         nPlayersComboBox.setEnabled(false);
         combSizeComboBox.setEnabled(false);
         humanPlayerCheckBox.setEnabled(false);

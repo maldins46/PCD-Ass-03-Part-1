@@ -11,11 +11,13 @@ public final class StartPlayerMsg implements Message {
     private final int combinationSize;
     private final Set<ActorRef> playersRef;
     private final ActorRef refereeRef;
+    private final boolean responseOnlyToSender;
 
-    public StartPlayerMsg(final int combinationSize, final Set<ActorRef> playersRef, final ActorRef refereeRef) {
+    public StartPlayerMsg(final int combinationSize, final Set<ActorRef> playersRef, final ActorRef refereeRef, final boolean responseOnlyToSender) {
         this.combinationSize = combinationSize;
         this.playersRef = playersRef;
         this.refereeRef = refereeRef;
+        this.responseOnlyToSender = responseOnlyToSender;
     }
 
     public int getCombinationSize() {
@@ -28,5 +30,9 @@ public final class StartPlayerMsg implements Message {
 
     public ActorRef getReferee() {
         return refereeRef;
+    }
+
+    public boolean isResponseOnlyToSender() {
+        return responseOnlyToSender;
     }
 }
