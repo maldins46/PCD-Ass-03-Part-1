@@ -10,16 +10,10 @@ import pcd.ass03.ex01.utils.Combination;
  */
 
 public final class VerifySolutionMsg implements Message {
-    private final ActorRef sender;
     private final Combination combination;
 
-    public VerifySolutionMsg(final ActorRef sender, final Combination combination){
-        this.sender = sender;
+    public VerifySolutionMsg(final Combination combination){
         this.combination = combination;
-    }
-
-    public ActorRef getSender() {
-        return sender;
     }
 
     public Combination getCombination() {

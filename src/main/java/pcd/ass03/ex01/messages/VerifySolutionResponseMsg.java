@@ -7,17 +7,10 @@ import akka.actor.ActorRef;
  */
 
 public final class VerifySolutionResponseMsg implements Message {
-    private final ActorRef sender;
     private final boolean solutionGuessed;
 
-    public VerifySolutionResponseMsg(final ActorRef sender, final boolean solutionGuessed){
-        this.sender = sender;
-
+    public VerifySolutionResponseMsg(final boolean solutionGuessed){
         this.solutionGuessed = solutionGuessed;
-    }
-
-    public ActorRef getSender() {
-        return sender;
     }
 
     public boolean isSolutionGuessed() {

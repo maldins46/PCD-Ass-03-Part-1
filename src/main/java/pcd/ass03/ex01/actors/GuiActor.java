@@ -19,7 +19,7 @@ public final class GuiActor extends AbstractLoggingActor {
     /**
      * Reference to referee.
      */
-    private ActorRef refereeActor;
+    private ActorRef referee;
 
 
     /**
@@ -31,7 +31,6 @@ public final class GuiActor extends AbstractLoggingActor {
     public void preStart() {
         this.gameGui = GameGui.of(this);
         this.gameGui.launch();
-        this.refereeActor = getContext().getSystem().actorOf(Props.create(RefereeActor.class), "Referee");
     }
 
 
@@ -51,6 +50,7 @@ public final class GuiActor extends AbstractLoggingActor {
      * Send start game message to referee, that also initializes the players.
      */
     public void sendStartGameMessage() {
+        this.referee = getContext().getSystem().actorOf(Props.create(RefereeActor.class), "Referee");
         final StartGameMsg startGameMsg = new StartGameMsg(
                 getSelf(),
                 gameGui.getNPlayers(),
@@ -58,7 +58,7 @@ public final class GuiActor extends AbstractLoggingActor {
                 gameGui.hasHumanPlayer(),
                 gameGui.respondsOnlyToTheGuesser()
         );
-        this.refereeActor.tell(startGameMsg, getSelf());
+        this.referee.tell(startGameMsg, getSelf());
     }
 
 
@@ -66,8 +66,7 @@ public final class GuiActor extends AbstractLoggingActor {
      * Sena a stog game message to the referee, aborting the execution of it.
      */
     public void sendStopGameMessage() {
-        final StopGameMsg stopGameMsg = new StopGameMsg();
-        this.refereeActor.tell(stopGameMsg, getSelf());
+        this.referee.tell(new StopGameMsg(), getSelf());
     }
 
 
@@ -81,14 +80,12 @@ public final class GuiActor extends AbstractLoggingActor {
 
 
     /**
-     * Handle to update Gui with the game winner.
+     * Handle to update Gui when all players lost.
      * @param loseMsg message from RefereeActor.
      */
     private void handleLoseMsg(final LoseMsg loseMsg) {
         if (loseMsg.getNActivePlayers() == 0) {
             this.gameGui.finishMatch(loseMsg);
-        } else {
-            this.gameGui.printLog("Player " + loseMsg.getLoser() + " have lost!");
         }
     }
 

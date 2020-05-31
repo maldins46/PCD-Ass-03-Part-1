@@ -10,18 +10,12 @@ import java.util.Map;
  */
 public final class SolutionMsg implements Message {
     private final Map<ActorRef, Combination> combinations;
-    private final ActorRef sender;
 
-    public SolutionMsg(final Map<ActorRef, Combination> combinations, final ActorRef sender) {
-        this.sender = sender;
+    public SolutionMsg(final Map<ActorRef, Combination> combinations) {
         this.combinations = combinations;
     }
 
     public Map<ActorRef, Combination> getCombinations() {
         return combinations;
-    }
-
-    public ActorRef getSender() {
-        return sender;
     }
 }

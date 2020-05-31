@@ -91,11 +91,18 @@ public final class GameGuiImpl implements GameGui {
         this.nPlayersComboBox.setSelectedItem(DEFAULT_N_PLAYERS);
 
         this.startStopButton = new JButton(START_LABEL);
+        final JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.add(startStopButton);
+
         this.humanPlayerCheckBox = new JCheckBox();
         this.respOnlyToGuesserCheckBox = new JCheckBox();
 
         this.logLabel = new JLabel("Choose your settings and start the game!");
         this.logLabel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        final JPanel logPanel = new JPanel();
+        logPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        logPanel.add(logLabel);
 
         this.mainFrame = new JFrame();
         this.mainFrame.setTitle("PCD - Assignment 03 - Maldini, Gorini, Angelini - MasterMind");
@@ -108,8 +115,9 @@ public final class GameGuiImpl implements GameGui {
         generalPanel.add(generateSinglePanel("Combination size: ", combSizeComboBox));
         generalPanel.add(generateSinglePanel("Do you want a human player? ", humanPlayerCheckBox));
         generalPanel.add(generateSinglePanel("Do you want to send guess' response only to the sender player? ", respOnlyToGuesserCheckBox));
-        generalPanel.add(logLabel);
-        generalPanel.add(startStopButton);
+
+        generalPanel.add(logPanel);
+        generalPanel.add(buttonPanel);
 
         startStopButton.addActionListener((e) -> {
             SwingUtilities.invokeLater(() -> {
@@ -170,9 +178,10 @@ public final class GameGuiImpl implements GameGui {
 
     @Override
     public void finishMatch(final Message msg) {
+        this.isGameStarted = false;
         this.enableGuiComponents();
         if (msg instanceof WinMsg) {
-            this.printLog("Player " + ((WinMsg) msg).getWinnerRef() + " have won the game!");
+            this.printLog("Player " + ((WinMsg) msg).getWinnerRef().path().name() + " have won the game!");
         } else {
             this.printLog("All players have lost!");
         }

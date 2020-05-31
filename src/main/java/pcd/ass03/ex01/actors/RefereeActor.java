@@ -1,18 +1,16 @@
 package pcd.ass03.ex01.actors;
 
-import akka.actor.AbstractLoggingActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import akka.actor.*;
 import pcd.ass03.ex01.messages.*;
-import pcd.ass03.ex01.utils.TurnTimeout;
 
+import java.time.Duration;
 import java.util.*;
 
 /**
  * Represents the entity that coordinates actions inside the match.
  */
 public final class RefereeActor extends AbstractLoggingActor {
+    private static final Duration TURN_DURATION = Duration.ofSeconds(60);
 
     /**
      * Reference to the actor used to handle the gui. The reference is
@@ -39,6 +37,11 @@ public final class RefereeActor extends AbstractLoggingActor {
     private final List<ActorRef> currentLap;
 
     /**
+     * Reference to the current turn player.
+     */
+    private ActorRef currentTurnPlayer;
+
+    /**
      * It memorizes the reference to tha player that submitted a solution,
      * during the verification process.
      */
@@ -49,13 +52,6 @@ public final class RefereeActor extends AbstractLoggingActor {
      * a solution, relative to every player examined.
      */
     private final Map<ActorRef, Boolean> solutionResults;
-
-
-    /**
-     * Keeps track of the turn timeout: if a player do not terminate
-     * the turn before the timeout, a TimeoutMsg will be sent to it.
-     */
-    private TurnTimeout turnTimeout;
 
 
     /**
@@ -95,10 +91,11 @@ public final class RefereeActor extends AbstractLoggingActor {
      * or solution messages (or force stop messages).
      * @return The default behavior of the referee.
      */
-    private Receive defaultBehavior() {
+    private Receive turnBehavior() {
         return receiveBuilder()
                 .match(FinishTurnMsg.class, this::handleFinishTurnMsg)
                 .match(SolutionMsg.class, this::handleSolutionMsg)
+                .match(ReceiveTimeout.class, this::handlePlayerReceiveTimeout)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
                 .matchAny(msg -> log().error("Message not recognized: " + msg))
                 .build();
@@ -126,7 +123,7 @@ public final class RefereeActor extends AbstractLoggingActor {
      * @param startGameMsg the received message.
      */
     private void handleStartGameMsg(final StartGameMsg startGameMsg) {
-        getContext().become(defaultBehavior());
+        getContext().become(turnBehavior());
 
         final ActorSystem system = this.getContext().getSystem();
 
@@ -157,11 +154,21 @@ public final class RefereeActor extends AbstractLoggingActor {
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
         log().info("Received stopMsg, aborting");
         players.forEach(player -> {
-            final StopGameMsg message = new StopGameMsg();
-            player.tell(message, getSelf());
+            player.tell(new StopGameMsg(), getSelf());
         });
 
         this.getContext().stop(getSelf());
+    }
+
+    /**
+     * This message is self-send to the actor, when the player do not respond
+     * with an end turn message (or a solution message) after a given time.
+     * It gives the turn to another player.
+     * @param receiveTimeout the received message.
+     */
+    private void handlePlayerReceiveTimeout(final ReceiveTimeout receiveTimeout) {
+        currentTurnPlayer.tell(new TimeoutMsg(), getSelf());
+        startNextTurn();
     }
 
 
@@ -187,12 +194,9 @@ public final class RefereeActor extends AbstractLoggingActor {
         log().info("Someone sent a solution, start verifying");
         getContext().become(verifySolutionBehavior());
 
-        solutionSubmitter = solutionMsg.getSender();
+        solutionSubmitter = getSender();
         players.stream().filter(player -> player != solutionSubmitter).forEach(player -> {
-            final VerifySolutionMsg message = new VerifySolutionMsg(
-                    solutionMsg.getSender(),
-                    solutionMsg.getCombinations().get(player)
-            );
+            final VerifySolutionMsg message = new VerifySolutionMsg(solutionMsg.getCombinations().get(player));
             player.tell(message, getSelf());
         });
     }
@@ -207,20 +211,22 @@ public final class RefereeActor extends AbstractLoggingActor {
      */
     private void handleVerifySolutionResponseMsg(final VerifySolutionResponseMsg verifySolRespMsg) {
         log().info("Player responded to a verify solution msg");
-        solutionResults.put(verifySolRespMsg.getSender(), verifySolRespMsg.isSolutionGuessed());
+        solutionResults.put(getSender(), verifySolRespMsg.isSolutionGuessed());
 
         // this means that all solution results have been received
-        if (solutionResults.size() == players.size()) {
+        if (solutionResults.size() == players.size() - 1) {
             if (isSolutionWinner()) {
                 // in this case, the verified player won. Notify this to all players.
+                log().info("Verified player won! Finishing match");
                 final WinMsg winMsg = new WinMsg(solutionSubmitter);
                 guiActor.tell(winMsg, getSelf());
                 players.forEach(player -> player.tell(winMsg, getSelf()));
-
+                activePlayers.clear();
 
             } else {
                 // in this case, the verified player lost. Remove it from the
                 // active players and notify it to all
+                log().info("Verified player lost! Continue, if necessary");
                 activePlayers.remove(solutionSubmitter);
                 final LoseMsg loseMsg = new LoseMsg(activePlayers.size(), solutionSubmitter);
                 guiActor.tell(loseMsg, getSelf());
@@ -235,6 +241,8 @@ public final class RefereeActor extends AbstractLoggingActor {
 
         if (activePlayers.size() > 0) {
             startNextTurn();
+        } else {
+            getContext().cancelReceiveTimeout();
         }
     }
 
@@ -265,16 +273,10 @@ public final class RefereeActor extends AbstractLoggingActor {
             Collections.shuffle(currentLap);
         }
 
-        ActorRef nextPlayer = currentLap.remove(0);
-        nextPlayer.tell(new StartTurnMsg(), getSelf());
+        currentTurnPlayer = currentLap.remove(0);
+        currentTurnPlayer.tell(new StartTurnMsg(), getSelf());
 
-        if (turnTimeout != null) {
-            turnTimeout.interrupt();
-        }
-
-        turnTimeout = new TurnTimeout((x) -> {
-            nextPlayer.tell(TimeoutMsg.class, getSelf());
-            return null;
-        });
+        getContext().cancelReceiveTimeout();
+        getContext().setReceiveTimeout(TURN_DURATION);
     }
 }

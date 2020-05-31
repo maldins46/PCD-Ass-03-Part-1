@@ -28,6 +28,7 @@ final class CombinationImpl implements Combination {
         return combination.equals(toCompare.getCombination());
     }
 
+
     @Override
     public int computeGuessedPositions(final Combination toCompare) {
         int nOfGuessedPositions = 0;
@@ -43,6 +44,7 @@ final class CombinationImpl implements Combination {
         }
         return nOfGuessedPositions;
     }
+
 
     @Override
     public int computeGuessedCyphers(final Combination toCompare) {

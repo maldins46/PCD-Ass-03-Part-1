@@ -28,7 +28,7 @@ public interface Combination {
 
     /**
      * Returns the number of cyphers that are in common between combination, but NOT
-     * in the same place.
+     * in the right place.
      * @param toCompare the combination to compare with the current.
      * @return the number of cyphers that are in common between combination, but NOT
      *         in the same place. If the size of the lists are different, it returns 0.
