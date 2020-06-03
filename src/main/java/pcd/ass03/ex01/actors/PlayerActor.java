@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 
-public final class PlayerActor extends AbstractActor {
+public class PlayerActor extends AbstractActor {
 
     /**
      * It memorizes all players. It is used a list because it is simpler
@@ -117,7 +117,7 @@ public final class PlayerActor extends AbstractActor {
      * to the <b>other</b> players and to the referee. It also creates the combination.
      * @param startPlayerMsg the message
      */
-    private void handleStartGameMsg(final StartPlayerMsg startPlayerMsg) {
+    protected void handleStartGameMsg(final StartPlayerMsg startPlayerMsg) {
         getContext().become(defaultBehavior());
 
         players = startPlayerMsg.getPlayers().stream()
@@ -137,7 +137,7 @@ public final class PlayerActor extends AbstractActor {
      * After that, it choices another player and it tries to guess his combination.
      * @param startTurnMsg the message
      */
-    private void handleStartTurnMsg(final StartTurnMsg startTurnMsg) {
+    protected void handleStartTurnMsg(final StartTurnMsg startTurnMsg) {
         getContext().become(turnBehavior());
         isMyTurn = true;
 
@@ -160,7 +160,7 @@ public final class PlayerActor extends AbstractActor {
      * after a failed solution.
      * @param loseMsg the message.
      */
-    private void handleLoseMsg(final LoseMsg loseMsg) {
+    protected void handleLoseMsg(final LoseMsg loseMsg) {
         if (loseMsg.getNActivePlayers() == 0) {
             log.info("Received loseMsg, every player have lost, aborting");
             getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
@@ -180,7 +180,7 @@ public final class PlayerActor extends AbstractActor {
      * It stops the player when the referee sends a stopGameMsg.
      * @param stopGameMsg the message.
      */
-    private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
+    protected void handleStopGameMsg(final StopGameMsg stopGameMsg) {
         log.info("Received stopMsg, aborting");
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
@@ -190,7 +190,7 @@ public final class PlayerActor extends AbstractActor {
      * It shows who is the winner.
      * @param winMsg the message.
      */
-    private void handleWinMsg(final WinMsg winMsg) {
+    protected void handleWinMsg(final WinMsg winMsg) {
         // todo se sono umano?
         log.info("Received winMsg, aborting");
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
@@ -239,7 +239,7 @@ public final class PlayerActor extends AbstractActor {
      * to send a SolutionMsg.
      * @param guessRespMsg the message
      */
-    private void handleGuessResponseMsg(final GuessResponseMsg guessRespMsg) {
+    protected void handleGuessResponseMsg(final GuessResponseMsg guessRespMsg) {
         if (isMyTurn) {
             if (guessRespMsg.getGuessedPositions() == combination.getCombinationSize()
                     && guessRespMsg.getGuessedCyphers() == 0) {
@@ -268,7 +268,7 @@ public final class PlayerActor extends AbstractActor {
      * This method stops the player after it receives a timeout.
      * @param timeoutMsg the message
      */
-    private void handleTimoutMsg(final TimeoutMsg timeoutMsg) {
+    protected void handleTimoutMsg(final TimeoutMsg timeoutMsg) {
         // todo quando avremo l'utente umano, qua gli forzi lo stop del turno
         // getContext().unbecome(); // fixme
         log.info("Received timeout!");
