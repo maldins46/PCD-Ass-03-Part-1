@@ -219,7 +219,7 @@ public final class RefereeActor extends AbstractActor {
                 final WinMsg winMsg = new WinMsg(solutionSubmitter);
                 guiActor.tell(winMsg, getSelf());
                 players.forEach(player -> player.tell(winMsg, getSelf()));
-                activePlayers.clear();
+                finishMatch();
 
             } else {
                 // in this case, the verified player lost. Remove it from the
@@ -229,22 +229,26 @@ public final class RefereeActor extends AbstractActor {
                 final LoseMsg loseMsg = new LoseMsg(activePlayers.size(), solutionSubmitter);
                 guiActor.tell(loseMsg, getSelf());
                 players.forEach(player -> player.tell(loseMsg, getSelf()));
+
+                if (activePlayers.size() > 0) {
+                    // re-initializes structures and behaviors
+                    solutionSubmitter = null;
+                    solutionResults.clear();
+                    getContext().become(defaultBehavior());
+                    startNextTurn();
+
+                } else {
+                    finishMatch();
+                }
             }
-
-            // re-initializes structures and behaviors.
-            solutionSubmitter = null;
-            solutionResults.clear();
-            // getContext().unbecome(); // fixme
-            getContext().become(defaultBehavior());
         }
+    }
 
-        if (activePlayers.size() > 0) {
-            startNextTurn();
-        } else {
-            getContext().cancelReceiveTimeout();
-            log.info("Match finished, aborting " + getSelf().path().name());
-            getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
-        }
+    private void finishMatch() {
+        // finish
+        getContext().cancelReceiveTimeout();
+        log.info("Match finished, aborting " + getSelf().path().name());
+        getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
 

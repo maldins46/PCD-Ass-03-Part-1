@@ -241,9 +241,6 @@ public final class PlayerActor extends AbstractActor {
      */
     private void handleGuessResponseMsg(final GuessResponseMsg guessRespMsg) {
         if (isMyTurn) {
-            // getContext().unbecome(); // fixme
-            getContext().become(defaultBehavior());
-
             if (guessRespMsg.getGuessedPositions() == combination.getCombinationSize()
                     && guessRespMsg.getGuessedCyphers() == 0) {
                 guessedCombination.put(getSender(), guessRespMsg.getCombination());
@@ -259,6 +256,8 @@ public final class PlayerActor extends AbstractActor {
             }
             referee.tell(responseToReferee, getSelf());
             isMyTurn = false;
+            getContext().become(defaultBehavior());
+
         } else {
             log.info("Received guess response, ignoring");
         }

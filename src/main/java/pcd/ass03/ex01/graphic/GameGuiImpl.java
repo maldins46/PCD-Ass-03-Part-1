@@ -123,6 +123,7 @@ public final class GameGuiImpl implements GameGui {
             SwingUtilities.invokeLater(() -> {
                 if (isGameStarted) {
                     isGameStarted = false;
+                    logLabel.setText("Game stopped!");
                     enableGuiComponents();
                     guiActor.sendStopGameMessage();
 
