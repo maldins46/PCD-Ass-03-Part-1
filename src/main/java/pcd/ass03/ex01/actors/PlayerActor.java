@@ -45,6 +45,8 @@ public final class PlayerActor extends AbstractActor {
 
     private boolean loser;
 
+    private boolean isMyTurn;
+
     private boolean respondsOnlyToSender;
 
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), getSelf().path().name());
@@ -65,13 +67,12 @@ public final class PlayerActor extends AbstractActor {
     }
 
 
-
     /**
      * This is the actor behavior used when it is not its turn.
      * @return the receive behavior.
      */
     private Receive defaultBehavior() {
-        log.info(getSelf().path().name() + " is in default behavior");
+        log.info("Default behavior");
         return receiveBuilder()
                 .match(StartTurnMsg.class, this::handleStartTurnMsg)
                 .match(GuessMsg.class, this::handleGuessMsg)
@@ -90,7 +91,7 @@ public final class PlayerActor extends AbstractActor {
      * @return the receive behavior.
      */
     private Receive turnBehavior() {
-        log.info(getSelf().path().name() + " is in turn behavior");
+        log.info("Turn behavior");
         return receiveBuilder()
                 .match(GuessResponseMsg.class, this::handleGuessResponseMsg)
                 .match(TimeoutMsg.class, this::handleTimoutMsg)
@@ -100,6 +101,7 @@ public final class PlayerActor extends AbstractActor {
     }
 
     private Receive lostBehavior() {
+        log.info("Lost behavior");
         return receiveBuilder()
                 .match(GuessMsg.class, this::handleGuessMsg)
                 .match(VerifySolutionMsg.class, this::handleVerifySolutionMsg)
@@ -126,7 +128,30 @@ public final class PlayerActor extends AbstractActor {
         respondsOnlyToSender = startPlayerMsg.isResponseOnlyToSender();
         referee = startPlayerMsg.getReferee();
         combination = Combination.of(startPlayerMsg.getCombinationSize());
-        log.info("Started " + getSelf().path().name() + ", combination is " + combination.getCombination().toString());
+        log.info("Started, combination is " + combination.getCombination().toString());
+    }
+
+
+    /**
+     * When a startTurnMsg arrives to the player, this actor will enable the turn.
+     * After that, it choices another player and it tries to guess his combination.
+     * @param startTurnMsg the message
+     */
+    private void handleStartTurnMsg(final StartTurnMsg startTurnMsg) {
+        getContext().become(turnBehavior());
+        isMyTurn = true;
+
+        final ActorRef playerToGuess = choosePlayer();
+
+        if (playerToGuess == null) {
+            log.error("Player null, qualcosa è andato storto in start turn!!!!");
+
+        } else {
+            final Combination combinationToGuess = chooseCombination(playerToGuess);
+            final GuessMsg guessMsg = new GuessMsg(combinationToGuess);
+            playerToGuess.tell(guessMsg, getSelf());
+            log.info("Turn started, sent guess msg to " + playerToGuess.path().name());
+        }
     }
 
 
@@ -137,13 +162,16 @@ public final class PlayerActor extends AbstractActor {
      */
     private void handleLoseMsg(final LoseMsg loseMsg) {
         if (loseMsg.getNActivePlayers() == 0) {
-            log.info("Received loseMsg, every player have lost, aborting " + getSelf().path().name());
+            log.info("Received loseMsg, every player have lost, aborting");
             getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
-        }
 
-        if (loseMsg.getLoser().equals(getSelf())) {
+        } else if (loseMsg.getLoser().equals(getSelf())) {
+            log.info("I have lost :(");
             getContext().become(lostBehavior());
             loser = true;
+
+        } else {
+            log.info("Someone lost, not me");
         }
     }
 
@@ -153,7 +181,7 @@ public final class PlayerActor extends AbstractActor {
      * @param stopGameMsg the message.
      */
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
-        log.info("Received stopMsg, aborting " + getSelf().path().name());
+        log.info("Received stopMsg, aborting");
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
@@ -164,7 +192,7 @@ public final class PlayerActor extends AbstractActor {
      */
     private void handleWinMsg(final WinMsg winMsg) {
         // todo se sono umano?
-        log.info("Received winMsg, aborting " + getSelf().path().name());
+        log.info("Received winMsg, aborting");
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
@@ -178,6 +206,7 @@ public final class PlayerActor extends AbstractActor {
                 combination.compare(verifySolutionMsg.getCombination())
         );
         referee.tell(verSolRespMsg, getSelf());
+        log.info("Respond to a verify solution, result is " + combination.compare(verifySolutionMsg.getCombination()));
 
     }
 
@@ -188,7 +217,6 @@ public final class PlayerActor extends AbstractActor {
      * @param guessMsg the message
      */
     private void handleGuessMsg(final GuessMsg guessMsg) {
-        log.info("Received guess message from " + getSender().path().name() + "; compare and response");
         final GuessResponseMsg message = new GuessResponseMsg(
                 combination.computeGuessedCyphers(guessMsg.getCombination()),
                 combination.computeGuessedPositions((guessMsg.getCombination())),
@@ -196,28 +224,14 @@ public final class PlayerActor extends AbstractActor {
         );
 
         if (respondsOnlyToSender) {
+            log.info("Received guess message from " + getSender().path().name() + "; responding to the sender");
             getSender().tell(message, getSelf());
         } else {
+            log.info("Received guess message from " + getSender().path().name() + "; responding to all");
             players.forEach(player -> player.tell(message, getSelf()));
         }
     }
 
-
-    /**
-     * When a startTurnMsg arrives to the player, this actor will enable the turn.
-     * After that, it choices another player and it tries to guess his combination.
-     * @param startTurnMsg the message
-     */
-    private void handleStartTurnMsg(final StartTurnMsg startTurnMsg) {
-        getContext().become(turnBehavior());
-
-        final ActorRef playerToGuess = choosePlayer();
-        final Combination combinationToGuess = chooseCombination(playerToGuess);
-        final GuessMsg guessMsg = new GuessMsg(combinationToGuess);
-
-        log.info("Turn started, sent guess msg to " + playerToGuess.path().name());
-        playerToGuess.tell(guessMsg, getSelf());
-    }
 
 
     /**
@@ -226,22 +240,28 @@ public final class PlayerActor extends AbstractActor {
      * @param guessRespMsg the message
      */
     private void handleGuessResponseMsg(final GuessResponseMsg guessRespMsg) {
-        log.info("Received guess response. Finishing turn");
-        // getContext().unbecome(); // fixme
-        getContext().become(defaultBehavior());
+        if (isMyTurn) {
+            // getContext().unbecome(); // fixme
+            getContext().become(defaultBehavior());
 
-        if (guessRespMsg.getGuessedPositions() == combination.getCombinationSize()
-                && guessRespMsg.getGuessedCyphers() == 0) {
-            guessedCombination.put(getSender(), guessRespMsg.getCombination());
-        }
+            if (guessRespMsg.getGuessedPositions() == combination.getCombinationSize()
+                    && guessRespMsg.getGuessedCyphers() == 0) {
+                guessedCombination.put(getSender(), guessRespMsg.getCombination());
+            }
 
-        final Message responseToReferee;
-        if (guessedCombination.size() == players.size()) {
-            responseToReferee = new SolutionMsg(guessedCombination);
+            final Message responseToReferee;
+            if (guessedCombination.size() == players.size()) {
+                log.info("Received guess response. I have the solution! Respond with SolutionMsg");
+                responseToReferee = new SolutionMsg(guessedCombination);
+            } else {
+                log.info("Received guess response without combination. Finishing turn");
+                responseToReferee = new FinishTurnMsg();
+            }
+            referee.tell(responseToReferee, getSelf());
+            isMyTurn = false;
         } else {
-            responseToReferee = new FinishTurnMsg();
+            log.info("Received guess response, ignoring");
         }
-        referee.tell(responseToReferee, getSelf());
     }
 
 
@@ -252,6 +272,7 @@ public final class PlayerActor extends AbstractActor {
     private void handleTimoutMsg(final TimeoutMsg timeoutMsg) {
         // todo quando avremo l'utente umano, qua gli forzi lo stop del turno
         // getContext().unbecome(); // fixme
+        log.info("Received timeout!");
         getContext().become(defaultBehavior());
     }
 
@@ -281,11 +302,11 @@ public final class PlayerActor extends AbstractActor {
     private ActorRef choosePlayer() {
         Collections.shuffle(players);
 
-        ActorRef playerToGuess = players.iterator().next();
-        while (guessedCombination.containsKey(playerToGuess)) {
-            playerToGuess = players.iterator().next();
+        for (ActorRef player : players) {
+            if (!guessedCombination.containsKey(player))
+                return player;
         }
 
-        return playerToGuess;
+       return null;
     }
 }

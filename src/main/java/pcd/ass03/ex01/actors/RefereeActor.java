@@ -254,13 +254,12 @@ public final class RefereeActor extends AbstractActor {
      *         right, false otherwise.
      */
     private boolean isSolutionWinner() {
-        boolean win = true;
         for (final ActorRef player : solutionResults.keySet()) {
             if (!solutionResults.get(player)) {
-                win = false;
+                return false;
             }
         }
-        return win;
+        return true;
     }
 
 

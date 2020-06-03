@@ -128,6 +128,7 @@ public final class GameGuiImpl implements GameGui {
 
                 } else {
                     isGameStarted = true;
+                    logLabel.setText("Game started");
                     disableGuiComponents();
                     guiActor.sendStartGameMessage();
                 }
