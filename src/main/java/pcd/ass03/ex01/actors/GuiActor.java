@@ -1,15 +1,18 @@
 package pcd.ass03.ex01.actors;
 
+import akka.actor.AbstractActor;
 import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import pcd.ass03.ex01.graphic.GameGui;
 import pcd.ass03.ex01.messages.*;
 
 /**
  * Actor that interact with referee and update GameGui.
  */
-public final class GuiActor extends AbstractLoggingActor {
+public final class GuiActor extends AbstractActor {
 
     /**
      * Reference to Gui's game.
@@ -21,6 +24,7 @@ public final class GuiActor extends AbstractLoggingActor {
      */
     private ActorRef referee;
 
+    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), getSelf().path().name());
 
     /**
      * During the pre-start, the concrete gui is created and shown to the user,
@@ -41,7 +45,7 @@ public final class GuiActor extends AbstractLoggingActor {
                 .match(LogMsg.class, this::handleLogMsg)
                 .match(WinMsg.class, this::handleWinMsg)
                 .match(LoseMsg.class, this::handleLoseMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
 

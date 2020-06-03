@@ -1,6 +1,8 @@
 package pcd.ass03.ex01.actors;
 
 import akka.actor.*;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import pcd.ass03.ex01.messages.*;
 
 import java.time.Duration;
@@ -9,32 +11,32 @@ import java.util.*;
 /**
  * Represents the entity that coordinates actions inside the match.
  */
-public final class RefereeActor extends AbstractLoggingActor {
+public final class RefereeActor extends AbstractActor {
     private static final Duration TURN_DURATION = Duration.ofSeconds(60);
 
     /**
      * Reference to the actor used to handle the gui. The reference is
-     * necessary to send log().info, win, and lost messages.
+     * necessary to send log.info, win, and lost messages.
      */
     private ActorRef guiActor;
 
     /**
      * It memorizes references to all players.
      */
-    private final Set<ActorRef> players;
+    private final Set<ActorRef> players = new HashSet<>();
 
     /**
      * It memorizes only players that have not been excluded by the game,
      * subsequently to a wrong attempt to give the final solution.
      */
-    private final Set<ActorRef> activePlayers;
+    private final Set<ActorRef> activePlayers = new HashSet<>();
 
     /**
      * Keeps track of the current 'turn lap'; for every turn, a player
      * will be removed from the list. When thet is empty, it will be
      * re-initialized randomly.
      */
-    private final List<ActorRef> currentLap;
+    private final List<ActorRef> currentLap = new ArrayList<>();
 
     /**
      * Reference to the current turn player.
@@ -51,18 +53,9 @@ public final class RefereeActor extends AbstractLoggingActor {
      * It memorizes reference and result of the verification process for
      * a solution, relative to every player examined.
      */
-    private final Map<ActorRef, Boolean> solutionResults;
+    private final Map<ActorRef, Boolean> solutionResults = new HashMap<>();
 
-
-    /**
-     * The default constructor. It initializes data structures as empty.
-     */
-    public RefereeActor() {
-        this.players = new HashSet<>();
-        this.activePlayers = new HashSet<>();
-        this.currentLap = new ArrayList<>();
-        this.solutionResults = new HashMap<>();
-    }
+    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), getSelf().path().name());
 
 
     @Override
@@ -80,7 +73,7 @@ public final class RefereeActor extends AbstractLoggingActor {
         return receiveBuilder()
                 .match(StartGameMsg.class, this::handleStartGameMsg)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -97,7 +90,7 @@ public final class RefereeActor extends AbstractLoggingActor {
                 .match(SolutionMsg.class, this::handleSolutionMsg)
                 .match(ReceiveTimeout.class, this::handlePlayerReceiveTimeout)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -112,7 +105,7 @@ public final class RefereeActor extends AbstractLoggingActor {
         return receiveBuilder()
                 .match(VerifySolutionResponseMsg.class, this::handleVerifySolutionResponseMsg)
                 .match(StopGameMsg.class, this:: handleStopGameMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -146,7 +139,7 @@ public final class RefereeActor extends AbstractLoggingActor {
             player.tell(message, getSelf());
         });
 
-        log().info("Referee started, starting players");
+        log.info("Referee started, starting players");
         startNextTurn();
     }
 
@@ -157,7 +150,7 @@ public final class RefereeActor extends AbstractLoggingActor {
      * @param stopGameMsg the received message.
      */
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
-        log().info("Received stopMsg, aborting " + getSelf().path().name());
+        log.info("Received stopMsg, aborting " + getSelf().path().name());
         players.forEach(player -> {
             player.tell(new StopGameMsg(), getSelf());
         });
@@ -183,7 +176,7 @@ public final class RefereeActor extends AbstractLoggingActor {
      * @param finishTurnMsg the received message.
      */
     private void handleFinishTurnMsg(final FinishTurnMsg finishTurnMsg) {
-        log().info("Turn finished, starting a new one");
+        log.info("Turn finished, starting a new one");
         startNextTurn();
     }
 
@@ -196,7 +189,7 @@ public final class RefereeActor extends AbstractLoggingActor {
      * @param solutionMsg the received message.
      */
     private void handleSolutionMsg(final SolutionMsg solutionMsg) {
-        log().info("Someone sent a solution, start verifying");
+        log.info("Someone sent a solution, start verifying");
         getContext().become(verifySolutionBehavior());
 
         solutionSubmitter = getSender();
@@ -215,14 +208,14 @@ public final class RefereeActor extends AbstractLoggingActor {
      * @param verifySolRespMsg the received message.
      */
     private void handleVerifySolutionResponseMsg(final VerifySolutionResponseMsg verifySolRespMsg) {
-        log().info("Player responded to a verify solution msg");
+        log.info("Player responded to a verify solution msg");
         solutionResults.put(getSender(), verifySolRespMsg.isSolutionGuessed());
 
         // this means that all solution results have been received
         if (solutionResults.size() == players.size() - 1) {
             if (isSolutionWinner()) {
                 // in this case, the verified player won. Notify this to all players.
-                log().info("Verified player won! Finishing match");
+                log.info("Verified player won! Finishing match");
                 final WinMsg winMsg = new WinMsg(solutionSubmitter);
                 guiActor.tell(winMsg, getSelf());
                 players.forEach(player -> player.tell(winMsg, getSelf()));
@@ -231,7 +224,7 @@ public final class RefereeActor extends AbstractLoggingActor {
             } else {
                 // in this case, the verified player lost. Remove it from the
                 // active players and notify it to all
-                log().info("Verified player lost! Continue, if necessary");
+                log.info("Verified player lost! Continue, if necessary");
                 activePlayers.remove(solutionSubmitter);
                 final LoseMsg loseMsg = new LoseMsg(activePlayers.size(), solutionSubmitter);
                 guiActor.tell(loseMsg, getSelf());
@@ -249,7 +242,7 @@ public final class RefereeActor extends AbstractLoggingActor {
             startNextTurn();
         } else {
             getContext().cancelReceiveTimeout();
-            log().info("Match finished, aborting " + getSelf().path().name());
+            log.info("Match finished, aborting " + getSelf().path().name());
             getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
     }

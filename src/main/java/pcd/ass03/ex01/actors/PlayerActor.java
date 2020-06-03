@@ -1,16 +1,20 @@
 package pcd.ass03.ex01.actors;
 
+import akka.actor.AbstractActor;
 import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import pcd.ass03.ex01.messages.*;
 import pcd.ass03.ex01.utils.Combination;
 
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 
-public final class PlayerActor extends AbstractLoggingActor {
+public final class PlayerActor extends AbstractActor {
 
     /**
      * It memorizes all players. It is used a list because it is simpler
@@ -21,13 +25,13 @@ public final class PlayerActor extends AbstractLoggingActor {
     /**
      * It memorizes the ref to the other players with the correct combination.
      */
-    private final Map<ActorRef, Combination> guessedCombination;
+    private final Map<ActorRef, Combination> guessedCombination = new HashMap<>();
 
     /**
      * It memorizes the ref to the other players with all the combinations
      * that have been tested.
      */
-    private final Map<ActorRef, List<Combination>> triedCombinations;
+    private final Map<ActorRef, List<Combination>> triedCombinations = new HashMap<>();
 
     /**
      * It memorizes the ref to the referee.
@@ -43,16 +47,8 @@ public final class PlayerActor extends AbstractLoggingActor {
 
     private boolean respondsOnlyToSender;
 
-
-    /**
-     * Default player constructor.
-     */
-    public PlayerActor() {
-        this.players = new ArrayList<>();
-        this.guessedCombination = new HashMap<>();
-        this.triedCombinations = new HashMap<>();
-        this.loser = false;
-    }
+    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), getSelf().path().name());
+    
 
 
     @Override
@@ -64,7 +60,7 @@ public final class PlayerActor extends AbstractLoggingActor {
         return receiveBuilder()
                 .match(StartPlayerMsg.class, this::handleStartGameMsg)
                 .match(StopGameMsg.class, this::handleStopGameMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -75,7 +71,7 @@ public final class PlayerActor extends AbstractLoggingActor {
      * @return the receive behavior.
      */
     private Receive defaultBehavior() {
-        log().info(getSelf().path().name() + " is in default behavior");
+        log.info(getSelf().path().name() + " is in default behavior");
         return receiveBuilder()
                 .match(StartTurnMsg.class, this::handleStartTurnMsg)
                 .match(GuessMsg.class, this::handleGuessMsg)
@@ -84,7 +80,7 @@ public final class PlayerActor extends AbstractLoggingActor {
                 .match(StopGameMsg.class, this::handleStopGameMsg)
                 .match(LoseMsg.class, this::handleLoseMsg)
                 .match(GuessResponseMsg.class, this::handleGuessResponseMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -94,15 +90,14 @@ public final class PlayerActor extends AbstractLoggingActor {
      * @return the receive behavior.
      */
     private Receive turnBehavior() {
-        log().info(getSelf().path().name() + " is in turn behavior");
+        log.info(getSelf().path().name() + " is in turn behavior");
         return receiveBuilder()
                 .match(GuessResponseMsg.class, this::handleGuessResponseMsg)
                 .match(TimeoutMsg.class, this::handleTimoutMsg)
                 .match(StopGameMsg.class, this::handleStopGameMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
-
 
     private Receive lostBehavior() {
         return receiveBuilder()
@@ -111,7 +106,7 @@ public final class PlayerActor extends AbstractLoggingActor {
                 .match(WinMsg.class, this::handleWinMsg)
                 .match(LoseMsg.class, this::handleLoseMsg)
                 .match(StopGameMsg.class, this::handleStopGameMsg)
-                .matchAny(msg -> log().error("Message not recognized: " + msg))
+                .matchAny(msg -> log.error("Message not recognized: " + msg))
                 .build();
     }
 
@@ -131,7 +126,7 @@ public final class PlayerActor extends AbstractLoggingActor {
         respondsOnlyToSender = startPlayerMsg.isResponseOnlyToSender();
         referee = startPlayerMsg.getReferee();
         combination = Combination.of(startPlayerMsg.getCombinationSize());
-        log().info("Started " + getSelf().path().name() + ", combination is " + combination.getCombination().toString());
+        log.info("Started " + getSelf().path().name() + ", combination is " + combination.getCombination().toString());
     }
 
 
@@ -142,7 +137,7 @@ public final class PlayerActor extends AbstractLoggingActor {
      */
     private void handleLoseMsg(final LoseMsg loseMsg) {
         if (loseMsg.getNActivePlayers() == 0) {
-            log().info("Received loseMsg, every player have lost, aborting " + getSelf().path().name());
+            log.info("Received loseMsg, every player have lost, aborting " + getSelf().path().name());
             getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
 
@@ -158,7 +153,7 @@ public final class PlayerActor extends AbstractLoggingActor {
      * @param stopGameMsg the message.
      */
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
-        log().info("Received stopMsg, aborting " + getSelf().path().name());
+        log.info("Received stopMsg, aborting " + getSelf().path().name());
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
@@ -169,7 +164,7 @@ public final class PlayerActor extends AbstractLoggingActor {
      */
     private void handleWinMsg(final WinMsg winMsg) {
         // todo se sono umano?
-        log().info("Received winMsg, aborting " + getSelf().path().name());
+        log.info("Received winMsg, aborting " + getSelf().path().name());
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 
@@ -193,7 +188,7 @@ public final class PlayerActor extends AbstractLoggingActor {
      * @param guessMsg the message
      */
     private void handleGuessMsg(final GuessMsg guessMsg) {
-        log().info("Received guess message from " + getSender().path().name() + "; compare and response");
+        log.info("Received guess message from " + getSender().path().name() + "; compare and response");
         final GuessResponseMsg message = new GuessResponseMsg(
                 combination.computeGuessedCyphers(guessMsg.getCombination()),
                 combination.computeGuessedPositions((guessMsg.getCombination())),
@@ -220,7 +215,7 @@ public final class PlayerActor extends AbstractLoggingActor {
         final Combination combinationToGuess = chooseCombination(playerToGuess);
         final GuessMsg guessMsg = new GuessMsg(combinationToGuess);
 
-        log().info("Turn started, sent guess msg to " + playerToGuess.path().name());
+        log.info("Turn started, sent guess msg to " + playerToGuess.path().name());
         playerToGuess.tell(guessMsg, getSelf());
     }
 
@@ -231,7 +226,7 @@ public final class PlayerActor extends AbstractLoggingActor {
      * @param guessRespMsg the message
      */
     private void handleGuessResponseMsg(final GuessResponseMsg guessRespMsg) {
-        log().info("Received guess response. Finishing turn");
+        log.info("Received guess response. Finishing turn");
         // getContext().unbecome(); // fixme
         getContext().become(defaultBehavior());
 
