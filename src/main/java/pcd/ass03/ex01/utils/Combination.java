@@ -45,6 +45,10 @@ public interface Combination {
         return new CombinationImpl(combinationSize);
     }
 
+    static Combination of(final List<Integer> combination) {
+        return new CombinationImpl(combination);
+    }
+
     /**
      * This method returns the size of the combination.
      * @return the size

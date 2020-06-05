@@ -22,6 +22,10 @@ final class CombinationImpl implements Combination {
         }
     }
 
+    CombinationImpl(final List<Integer> combination) {
+        this.combination = combination;
+    }
+
 
     @Override
     public boolean compare(final Combination toCompare) {

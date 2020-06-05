@@ -1,7 +1,6 @@
 package pcd.ass03.ex01.actors;
 
 import akka.actor.AbstractActor;
-import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.event.Logging;
@@ -10,7 +9,6 @@ import pcd.ass03.ex01.messages.*;
 import pcd.ass03.ex01.utils.Combination;
 
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 
@@ -20,7 +18,7 @@ public class PlayerActor extends AbstractActor {
      * It memorizes all players. It is used a list because it is simpler
      * to handle ordination and random picking.
      */
-    private List<ActorRef> players;
+    protected List<ActorRef> enemies;
 
     /**
      * It memorizes the ref to the other players with the correct combination.
@@ -120,10 +118,10 @@ public class PlayerActor extends AbstractActor {
     protected void handleStartGameMsg(final StartPlayerMsg startPlayerMsg) {
         getContext().become(defaultBehavior());
 
-        players = startPlayerMsg.getPlayers().stream()
+        enemies = startPlayerMsg.getPlayers().stream()
                 .filter(player -> player != getSelf()).collect(Collectors.toList());
 
-        players.forEach(player -> triedCombinations.put(player, new ArrayList<>()));
+        enemies.forEach(player -> triedCombinations.put(player, new ArrayList<>()));
 
         respondsOnlyToSender = startPlayerMsg.isResponseOnlyToSender();
         referee = startPlayerMsg.getReferee();
@@ -228,7 +226,7 @@ public class PlayerActor extends AbstractActor {
             getSender().tell(message, getSelf());
         } else {
             log.info("Received guess message from " + getSender().path().name() + "; responding to all");
-            players.forEach(player -> player.tell(message, getSelf()));
+            enemies.forEach(player -> player.tell(message, getSelf()));
         }
     }
 
@@ -247,7 +245,7 @@ public class PlayerActor extends AbstractActor {
             }
 
             final Message responseToReferee;
-            if (guessedCombination.size() == players.size()) {
+            if (guessedCombination.size() == enemies.size()) {
                 log.info("Received guess response. I have the solution! Respond with SolutionMsg");
                 responseToReferee = new SolutionMsg(guessedCombination);
             } else {
@@ -299,9 +297,9 @@ public class PlayerActor extends AbstractActor {
      * @return ActorRef to the selected actor.
      */
     private ActorRef choosePlayer() {
-        Collections.shuffle(players);
+        Collections.shuffle(enemies);
 
-        for (ActorRef player : players) {
+        for (ActorRef player : enemies) {
             if (!guessedCombination.containsKey(player))
                 return player;
         }

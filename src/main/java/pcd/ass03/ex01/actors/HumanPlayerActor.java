@@ -1,7 +1,11 @@
 package pcd.ass03.ex01.actors;
 
+import akka.actor.ActorRef;
 import pcd.ass03.ex01.graphic.PlayerGui;
 import pcd.ass03.ex01.messages.*;
+import pcd.ass03.ex01.utils.Combination;
+
+import java.util.stream.Collectors;
 
 public class HumanPlayerActor extends PlayerActor {
     private PlayerGui playerGui;
@@ -19,6 +23,7 @@ public class HumanPlayerActor extends PlayerActor {
     @Override
     protected void handleStartGameMsg(StartPlayerMsg startPlayerMsg) {
         super.handleStartGameMsg(startPlayerMsg);
+        playerGui = PlayerGui.of(this, enemies);
     }
 
     @Override
@@ -39,5 +44,10 @@ public class HumanPlayerActor extends PlayerActor {
     @Override
     protected void handleWinMsg(WinMsg winMsg) {
         super.handleWinMsg(winMsg);
+    }
+
+
+    public void sendGuessMessage(final ActorRef receiver, final Combination guess) {
+        receiver.tell(new GuessMsg(guess), getSelf());
     }
 }

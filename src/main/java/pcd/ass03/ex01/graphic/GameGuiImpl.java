@@ -11,8 +11,8 @@ import java.awt.event.WindowEvent;
 
 public final class GameGuiImpl implements GameGui {
 
-    private static final int WIDTH = 500;
-    private static final int HEIGHT = 30;
+    private static final int LABEL_WIDTH = 500;
+    private static final int LABEL_HEIGHT = 30;
     private static final String START_LABEL = "Start";
     private static final String STOP_LABEL = "Stop";
     private static final Integer[] COMB_SIZE_ITEMS = new Integer[] {1, 2, 3, 4, 5};
@@ -99,7 +99,7 @@ public final class GameGuiImpl implements GameGui {
         this.respOnlyToGuesserCheckBox = new JCheckBox();
 
         this.logLabel = new JLabel("Choose your settings and start the game!");
-        this.logLabel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        this.logLabel.setPreferredSize(new Dimension(LABEL_WIDTH, LABEL_HEIGHT));
         final JPanel logPanel = new JPanel();
         logPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         logPanel.add(logLabel);

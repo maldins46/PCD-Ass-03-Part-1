@@ -4,8 +4,8 @@ import pcd.ass03.ex01.actors.GuiActor;
 import pcd.ass03.ex01.messages.Message;
 
 /**
- * Gives a rapresantation of a gui to configurate the match, and to follow the
- * progress of it, using a label.
+ * Gives a representation of a gui used to configure the match, and to follow
+ * the progress of it, using a label.
  */
 public interface GameGui {
 
