@@ -1,8 +1,6 @@
 package pcd.ass03.ex01.utils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 
 final class CombinationImpl implements Combination {
@@ -58,14 +56,19 @@ final class CombinationImpl implements Combination {
             return nOfGuessedCyphers;
         }
 
+        final Set<Integer> processedCyphers = new HashSet<>();
+
         for (int i = 0; i < combination.size(); i++) {
             if (combination.contains(toCompare.getCombination().get(i))
-                    && !combination.get(i).equals(toCompare.getCombination().get(i))) {
+                    && !combination.get(i).equals(toCompare.getCombination().get(i))
+             && !processedCyphers.contains(toCompare.getCombination().get(i))) {
                 nOfGuessedCyphers++;
+                processedCyphers.add(toCompare.getCombination().get(i));
             }
         }
         return nOfGuessedCyphers;
     }
+
 
     private boolean combWithDifferentSize(final Combination toCompare) {
         return combination.size() != toCompare.getCombination().size();

@@ -14,7 +14,7 @@ public final class WinMsg implements Message{
         this.winnerRef = winnerRef;
     }
 
-    public ActorRef getWinnerRef(){
+    public ActorRef getWinner(){
         return winnerRef;
     }
 }

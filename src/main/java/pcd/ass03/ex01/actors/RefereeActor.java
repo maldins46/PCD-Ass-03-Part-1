@@ -16,7 +16,7 @@ public final class RefereeActor extends AbstractActor {
 
     /**
      * Reference to the actor used to handle the gui. The reference is
-     * necessary to send log.info, win, and lost messages.
+     * necessary to send log.debug, win, and lost messages.
      */
     private ActorRef guiActor;
 
@@ -122,9 +122,16 @@ public final class RefereeActor extends AbstractActor {
 
         for (int i = 0; i < startGameMsg.getnPlayers(); i++) {
             final String playerName = "Player" + i;
-            final Props playerProps = Props.create(PlayerActor.class);
+            final Props playerProps;
+            if (startGameMsg.getHumanPlayer() && i == 0) {
+                playerProps = Props.create(HumanPlayerActor.class);
+            } else {
+                playerProps = Props.create(PlayerActor.class);
+            }
+
             final ActorRef newPlayer = system.actorOf(playerProps, playerName);
             players.add(newPlayer);
+
         }
 
         guiActor = startGameMsg.getGuiActor();
@@ -139,7 +146,7 @@ public final class RefereeActor extends AbstractActor {
             player.tell(message, getSelf());
         });
 
-        log.info("Referee started, starting players");
+        log.debug("Referee started, starting players");
         startNextTurn();
     }
 
@@ -150,7 +157,7 @@ public final class RefereeActor extends AbstractActor {
      * @param stopGameMsg the received message.
      */
     private void handleStopGameMsg(final StopGameMsg stopGameMsg) {
-        log.info("Received stopMsg, aborting " + getSelf().path().name());
+        log.debug("Received stopMsg, aborting " + getSelf().path().name());
         players.forEach(player -> {
             player.tell(new StopGameMsg(), getSelf());
         });
@@ -176,7 +183,7 @@ public final class RefereeActor extends AbstractActor {
      * @param finishTurnMsg the received message.
      */
     private void handleFinishTurnMsg(final FinishTurnMsg finishTurnMsg) {
-        log.info("Turn finished, starting a new one");
+        log.debug("Turn finished, starting a new one");
         startNextTurn();
     }
 
@@ -189,7 +196,7 @@ public final class RefereeActor extends AbstractActor {
      * @param solutionMsg the received message.
      */
     private void handleSolutionMsg(final SolutionMsg solutionMsg) {
-        log.info("Someone sent a solution, start verifying");
+        log.debug("Someone sent a solution, start verifying");
         getContext().become(verifySolutionBehavior());
 
         solutionSubmitter = getSender();
@@ -208,14 +215,14 @@ public final class RefereeActor extends AbstractActor {
      * @param verifySolRespMsg the received message.
      */
     private void handleVerifySolutionResponseMsg(final VerifySolutionResponseMsg verifySolRespMsg) {
-        log.info("Player responded to a verify solution msg");
+        log.debug("Player responded to a verify solution msg");
         solutionResults.put(getSender(), verifySolRespMsg.isSolutionGuessed());
 
         // this means that all solution results have been received
         if (solutionResults.size() == players.size() - 1) {
             if (isSolutionWinner()) {
                 // in this case, the verified player won. Notify this to all players.
-                log.info("Verified player won! Finishing match");
+                log.debug("Verified player won! Finishing match");
                 final WinMsg winMsg = new WinMsg(solutionSubmitter);
                 guiActor.tell(winMsg, getSelf());
                 players.forEach(player -> player.tell(winMsg, getSelf()));
@@ -224,7 +231,7 @@ public final class RefereeActor extends AbstractActor {
             } else {
                 // in this case, the verified player lost. Remove it from the
                 // active players and notify it to all
-                log.info("Verified player lost! Continue, if necessary");
+                log.debug("Verified player lost! Continue, if necessary");
                 activePlayers.remove(solutionSubmitter);
                 final LoseMsg loseMsg = new LoseMsg(activePlayers.size(), solutionSubmitter);
                 guiActor.tell(loseMsg, getSelf());
@@ -247,7 +254,7 @@ public final class RefereeActor extends AbstractActor {
     private void finishMatch() {
         // finish
         getContext().cancelReceiveTimeout();
-        log.info("Match finished, aborting " + getSelf().path().name());
+        log.debug("Match finished, aborting " + getSelf().path().name());
         getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 

@@ -111,10 +111,10 @@ public final class GameGuiImpl implements GameGui {
         final JPanel generalPanel = new JPanel();
         generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.PAGE_AXIS));
 
-        generalPanel.add(generateSinglePanel("Number of players: ", nPlayersComboBox));
-        generalPanel.add(generateSinglePanel("Combination size: ", combSizeComboBox));
-        generalPanel.add(generateSinglePanel("Do you want a human player? ", humanPlayerCheckBox));
-        generalPanel.add(generateSinglePanel("Do you want to send guess' response only to the sender player? ", respOnlyToGuesserCheckBox));
+        generalPanel.add(generateLinePanel(new JLabel("Number of players"), nPlayersComboBox));
+        generalPanel.add(generateLinePanel(new JLabel("Combination size"), combSizeComboBox));
+        generalPanel.add(generateLinePanel(humanPlayerCheckBox, new JLabel("Do you want to participate?")));
+        generalPanel.add(generateLinePanel(respOnlyToGuesserCheckBox, new JLabel("Guess response only to the sender player")));
 
         generalPanel.add(logPanel);
         generalPanel.add(buttonPanel);
@@ -151,17 +151,18 @@ public final class GameGuiImpl implements GameGui {
 
 
     /**
-     * Initializes a single panel of the gui, composed by a label to describe
-     * it and an interactive component.
-     * @param description is the label's name.
-     * @param interactiveComp is the component to add at the panel.
-     * @return the fresh new panel.
+     * Generates a JPanel that has n elements in line.
+     * @param components the components from left to right.
+     * @return the formatted panel.
      */
-    private JPanel generateSinglePanel(final String description, final JComponent interactiveComp) {
+    private JPanel generateLinePanel(final JComponent... components) {
         final JPanel newPanel = new JPanel();
         newPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        newPanel.add(new JLabel(description));
-        newPanel.add(interactiveComp);
+
+        for (JComponent component : components) {
+            newPanel.add(component);
+        }
+
         return newPanel;
     }
 
@@ -183,7 +184,7 @@ public final class GameGuiImpl implements GameGui {
         this.isGameStarted = false;
         this.enableGuiComponents();
         if (msg instanceof WinMsg) {
-            this.printLog("Player " + ((WinMsg) msg).getWinnerRef().path().name() + " have won the game!");
+            this.printLog("Player " + ((WinMsg) msg).getWinner().path().name() + " have won the game!");
         } else {
             this.printLog("All players have lost!");
         }

@@ -11,13 +11,15 @@ public interface PlayerGui {
 
     void launch();
 
-    void loseMatch();
+    void matchLoss(boolean wrongSolution);
 
-    void finishMatch(String winnerName, boolean youWin);
+    void matchVictory(ActorRef winnerName);
 
     void startTurn();
 
-    void startFinalTurnPart(Combination guessResponse);
+    void startFinalTurnPart(final int guessedPos, final int guessedCyphers);
+
+    void timeoutReceived();
 
 
     static PlayerGui of(HumanPlayerActor player, List<ActorRef> enemies, int combSize) {

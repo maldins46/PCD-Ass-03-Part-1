@@ -10,10 +10,11 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class PlayerGuiImpl implements PlayerGui {
-    private static final String DEFAULT_GUESS_RESPONSE_TEXT = "Here will be displayed the guess response.";
     private static final String DEFAULT_STATE_LABEL = "Welcome, player!";
 
     private final HumanPlayerActor player;
@@ -21,10 +22,9 @@ public final class PlayerGuiImpl implements PlayerGui {
     private final int combSize;
 
     private final JTextField guessTextField;
-    private final JComboBox<String> enemiesComboBox;
+    private final JComboBox<Object> enemiesComboBox;
     private final JButton sendGuessButton;
 
-    private final JLabel guessResponseLabel;
     private final JButton finishTurnButton;
 
     private final JTextField solutionTextField;
@@ -48,14 +48,15 @@ public final class PlayerGuiImpl implements PlayerGui {
         this.combSize = combSize;
 
         this.guessTextField = new JTextField(generateSampleGuessComb());
+        this.guessTextField.setColumns(5);
         this.enemiesComboBox = new JComboBox<>(extractEnemiesName());
         this.sendGuessButton = new JButton("Send guess");
 
-        this.guessResponseLabel = new JLabel(DEFAULT_GUESS_RESPONSE_TEXT);
-        this.finishTurnButton = new JButton("Finish turn");
+        this.finishTurnButton = new JButton("Finish turn without solution");
 
         this.solutionTextField = new JTextField(generateSampleSolutionComb());
-        this.sendSolutionButton = new JButton("Send solution");
+        this.solutionTextField.setColumns(15);
+        this.sendSolutionButton = new JButton("Send this solution");
 
         this.stateLabel = new JLabel(DEFAULT_STATE_LABEL);
 
@@ -66,10 +67,11 @@ public final class PlayerGuiImpl implements PlayerGui {
         final JPanel generalPanel = new JPanel();
         generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.PAGE_AXIS));
 
-        JLabel guessDescription = new JLabel("Choose a guess in the format " + generateSampleGuessComb());
-        generalPanel.add(generateLinePanel(guessDescription, guessTextField, enemiesComboBox));
-        generalPanel.add(generateLinePanel(guessResponseLabel, finishTurnButton));
-        generalPanel.add(generateLinePanel(solutionTextField, sendSolutionButton));
+        generalPanel.add(generateLinePanel(new JLabel("1. Make a guess")));
+        generalPanel.add(generateLinePanel(enemiesComboBox, guessTextField, sendGuessButton));
+
+        generalPanel.add(generateLinePanel(new JLabel("2. Finish the turn")));
+        generalPanel.add(generateLinePanel(solutionTextField, sendSolutionButton, finishTurnButton));
         generalPanel.add(generateLinePanel(stateLabel));
 
         sendGuessButton.addActionListener((e) -> {
@@ -77,7 +79,7 @@ public final class PlayerGuiImpl implements PlayerGui {
                final String guessString = guessTextField.getText();
                if (guessString.matches(generateGuessCombRegex())) {
                    final Combination guess = Combination.of(parseCombElements(guessString));
-                   player.sendGuessMessage(getSelectedEnemy(), guess);
+                   player.sendGuessMsg(getSelectedEnemy(), guess);
                    enableSolutionComponents();
 
                } else {
@@ -88,28 +90,27 @@ public final class PlayerGuiImpl implements PlayerGui {
 
         finishTurnButton.addActionListener((e) -> {
             SwingUtilities.invokeLater(() -> {
-                // todo finish turn msg
+                player.sendFinishTurnMsg();
                 disableAllComponents();
             });
         });
 
         sendSolutionButton.addActionListener((e) -> {
             SwingUtilities.invokeLater(() -> {
-                // todo parse solution and send it
+                final String solutionString = solutionTextField.getText();
+                if (solutionString.matches(generateSolutionCombRegex())) {
+                    player.sendSolutionMsg(parseSolution(solutionString));
+                    enableSolutionComponents();
+
+                } else {
+                    stateLabel.setText("Wrong solution format. Try again.");
+                }
                 disableAllComponents();
             });
         });
 
         mainFrame.setContentPane(generalPanel);
         mainFrame.pack();
-        mainFrame.addWindowListener(new WindowAdapter() {
-            public void windowClosing(final WindowEvent ev) {
-                System.exit(-1);
-            }
-            public void windowClosed(final WindowEvent ev) {
-                System.exit(-1);
-            }
-        });
     }
 
 
@@ -121,22 +122,61 @@ public final class PlayerGuiImpl implements PlayerGui {
 
 
     @Override
-    public void loseMatch() {
+    public void matchLoss(final boolean wrongSolution) {
         disableAllComponents();
-        stateLabel.setText("You lost the match!");
+        if (wrongSolution) {
+            stateLabel.setText("Wrong solution! You have lost match!");
+
+        } else {
+            final String lostString = "No one won the match!";
+            windowExitTimeout(lostString);
+        }
     }
 
 
     @Override
-    public void finishMatch(final String winnerName, final boolean youWin) {
+    public void matchVictory(final ActorRef winner) {
         disableAllComponents();
-        if (youWin) {
-            stateLabel.setText("You win the match!");
-        } else{
-            stateLabel.setText(winnerName + " wins the match!");
+        final String winLostString;
+        if (winner.equals(player.getSelf())) {
+            winLostString = "You win the match!";
+        } else {
+            winLostString = winner.path().name() + " won the match!";
         }
+
+        windowExitTimeout(winLostString);
     }
 
+
+    private void windowExitTimeout(final String stateLabelString) {
+        stateLabel.setText(stateLabelString + " The window will be closed in 3 seconds...");
+
+        final Thread exitTimeout = new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                try {
+                    Thread.sleep(1000);
+                    stateLabel.setText(stateLabelString + " The window will be closed in 2 seconds...");
+                    Thread.sleep(1000);
+                    stateLabel.setText(stateLabelString + " The window will be closed in 1 seconds... bye!");
+                    Thread.sleep(1000);
+                    mainFrame.setVisible(false);
+                    mainFrame.dispose();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        exitTimeout.start();
+    }
+
+
+    @Override
+    public void timeoutReceived() {
+        disableAllComponents();
+        stateLabel.setText("Too much time elapsed! Turn finished.");
+    }
 
     @Override
     public void startTurn() {
@@ -146,10 +186,11 @@ public final class PlayerGuiImpl implements PlayerGui {
 
 
     @Override
-    public void startFinalTurnPart(final Combination guessResponse) {
-        stateLabel.setText("Player responded with " + guessResponse.toString() + "; finish your turn, or select a solution.");
+    public void startFinalTurnPart(final int guessedPos, final int guessedCyphers) {
+        stateLabel.setText("Player responded. Guessed cyphers: " + guessedCyphers + "; guessed positions: " + guessedPos + ".");
         enableSolutionComponents();
     }
+
 
     /**
      * Generates a JPanel that has n elements in line.
@@ -168,8 +209,8 @@ public final class PlayerGuiImpl implements PlayerGui {
     }
 
 
-    private String[] extractEnemiesName() {
-        return (String[]) enemies.stream().map(enemy -> enemy.path().name()).toArray();
+    private Object[] extractEnemiesName() {
+        return enemies.stream().map(enemy -> enemy.path().name()).toArray();
     }
 
 
@@ -211,6 +252,7 @@ public final class PlayerGuiImpl implements PlayerGui {
         }
         return sampleComb.toString();
     }
+
 
     private void enableGuessComponents() {
         guessTextField.setEnabled(true);
@@ -254,5 +296,17 @@ public final class PlayerGuiImpl implements PlayerGui {
             combElements.add(Integer.parseInt(combString.substring(i, i+1)));
         }
         return combElements;
+    }
+
+
+    private Map<ActorRef, Combination> parseSolution(final String solutionString) {
+        final Map<ActorRef, Combination> solution = new HashMap<>();
+        final String[] partSolutionsString = solutionString.split(",");
+
+        for (int i = 0; i < enemies.size(); i++) {
+            solution.put(enemies.get(i), Combination.of(parseCombElements(partSolutionsString[i])));
+        }
+
+        return solution;
     }
 }
