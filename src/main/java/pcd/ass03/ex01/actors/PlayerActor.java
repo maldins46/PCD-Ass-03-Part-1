@@ -34,7 +34,7 @@ public class PlayerActor extends AbstractActor {
     /**
      * It memorizes the ref to the referee.
      */
-    protected ActorRef referee;
+    protected ActorRef arbiter;
 
     /**
      * It memorizes the combination.
@@ -124,7 +124,7 @@ public class PlayerActor extends AbstractActor {
         enemies.forEach(player -> triedCombinations.put(player, new ArrayList<>()));
 
         respondsOnlyToSender = startPlayerMsg.isResponseOnlyToSender();
-        referee = startPlayerMsg.getReferee();
+        arbiter = startPlayerMsg.getReferee();
         combination = Combination.of(startPlayerMsg.getCombinationSize());
         log.info("Started, combination is " + combination.getCombination().toString());
     }
@@ -206,7 +206,7 @@ public class PlayerActor extends AbstractActor {
         final VerifySolutionResponseMsg verSolRespMsg = new VerifySolutionResponseMsg(
                 combination.compare(verifySolutionMsg.getCombination())
         );
-        referee.tell(verSolRespMsg, getSelf());
+        arbiter.tell(verSolRespMsg, getSelf());
         log.debug("Respond to a verify solution, result is " + combination.compare(verifySolutionMsg.getCombination()));
 
     }
@@ -255,7 +255,7 @@ public class PlayerActor extends AbstractActor {
                 log.debug("Received guess response without combination. Finishing turn");
                 responseToReferee = new FinishTurnMsg();
             }
-            referee.tell(responseToReferee, getSelf());
+            arbiter.tell(responseToReferee, getSelf());
             isMyTurn = false;
             getContext().become(defaultBehavior());
 

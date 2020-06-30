@@ -1,7 +1,6 @@
 package pcd.ass03.ex01.actors;
 
 import akka.actor.AbstractActor;
-import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -22,7 +21,7 @@ public final class GuiActor extends AbstractActor {
     /**
      * Reference to referee.
      */
-    private ActorRef referee;
+    private ActorRef arbiter;
 
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), getSelf().path().name());
 
@@ -54,7 +53,7 @@ public final class GuiActor extends AbstractActor {
      * Send start game message to referee, that also initializes the players.
      */
     public void sendStartGameMessage() {
-        this.referee = getContext().getSystem().actorOf(Props.create(RefereeActor.class), "Referee");
+        this.arbiter = getContext().getSystem().actorOf(Props.create(ArbiterActor.class), "Referee");
         final StartGameMsg startGameMsg = new StartGameMsg(
                 getSelf(),
                 gameGui.getNPlayers(),
@@ -62,7 +61,7 @@ public final class GuiActor extends AbstractActor {
                 gameGui.hasHumanPlayer(),
                 gameGui.respondsOnlyToTheGuesser()
         );
-        this.referee.tell(startGameMsg, getSelf());
+        this.arbiter.tell(startGameMsg, getSelf());
     }
 
 
@@ -70,7 +69,7 @@ public final class GuiActor extends AbstractActor {
      * Sena a stog game message to the referee, aborting the execution of it.
      */
     public void sendStopGameMessage() {
-        this.referee.tell(new StopGameMsg(), getSelf());
+        this.arbiter.tell(new StopGameMsg(), getSelf());
     }
 
 

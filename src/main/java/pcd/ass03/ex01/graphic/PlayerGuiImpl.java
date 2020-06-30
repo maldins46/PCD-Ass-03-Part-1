@@ -2,13 +2,10 @@ package pcd.ass03.ex01.graphic;
 
 import akka.actor.ActorRef;
 import pcd.ass03.ex01.actors.HumanPlayerActor;
-import pcd.ass03.ex01.actors.PlayerActor;
 import pcd.ass03.ex01.utils.Combination;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +58,7 @@ public final class PlayerGuiImpl implements PlayerGui {
         this.stateLabel = new JLabel(DEFAULT_STATE_LABEL);
 
         this.mainFrame = new JFrame();
-        this.mainFrame.setTitle("MasterMind - Player view");
+        this.mainFrame.setTitle("Collective MasterMind - Player view");
         this.mainFrame.setResizable(false);
 
         final JPanel generalPanel = new JPanel();

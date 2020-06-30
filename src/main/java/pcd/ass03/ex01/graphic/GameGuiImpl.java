@@ -105,7 +105,7 @@ public final class GameGuiImpl implements GameGui {
         logPanel.add(logLabel);
 
         this.mainFrame = new JFrame();
-        this.mainFrame.setTitle("PCD - Assignment 03 - Maldini, Gorini, Angelini - MasterMind");
+        this.mainFrame.setTitle("PCD - Assignment 03 - Maldini, Gorini, Angelini - Collective MasterMind");
         this.mainFrame.setResizable(false);
 
         final JPanel generalPanel = new JPanel();

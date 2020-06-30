@@ -11,7 +11,7 @@ import java.util.*;
 /**
  * Represents the entity that coordinates actions inside the match.
  */
-public final class RefereeActor extends AbstractActor {
+public final class ArbiterActor extends AbstractActor {
     private static final Duration TURN_DURATION = Duration.ofSeconds(60);
 
     /**

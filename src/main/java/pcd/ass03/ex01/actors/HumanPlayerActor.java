@@ -7,7 +7,7 @@ import pcd.ass03.ex01.utils.Combination;
 
 import java.util.Map;
 
-public class HumanPlayerActor extends PlayerActor {
+public final class HumanPlayerActor extends PlayerActor {
     private PlayerGui playerGui;
 
     @Override
@@ -18,13 +18,13 @@ public class HumanPlayerActor extends PlayerActor {
     }
 
 
-
     @Override
     protected void handleStartGameMsg(final StartPlayerMsg startPlayerMsg) {
         super.handleStartGameMsg(startPlayerMsg);
         playerGui = PlayerGui.of(this, enemies, startPlayerMsg.getCombinationSize());
         playerGui.launch();
     }
+
 
     @Override
     protected void handleStartTurnMsg(final StartTurnMsg startTurnMsg) {
@@ -33,17 +33,20 @@ public class HumanPlayerActor extends PlayerActor {
         playerGui.startTurn();
     }
 
+
     @Override
     protected void handleStopGameMsg(final StopGameMsg stopGameMsg) {
         super.handleStopGameMsg(stopGameMsg);
         playerGui.matchLoss(false);
     }
 
+
     @Override
     protected void handleTimeoutMsg(final TimeoutMsg timeoutMsg) {
         super.handleTimeoutMsg(timeoutMsg);
         playerGui.timeoutReceived();
     }
+
 
     @Override
     protected void handleLoseMsg(final LoseMsg loseMsg) {
@@ -55,6 +58,7 @@ public class HumanPlayerActor extends PlayerActor {
             playerGui.matchLoss(true);
         }
     }
+
 
     @Override
     protected void handleWinMsg(final WinMsg winMsg) {
@@ -70,14 +74,14 @@ public class HumanPlayerActor extends PlayerActor {
 
 
     public void sendFinishTurnMsg() {
-        referee.tell(new FinishTurnMsg(), getSelf());
+        arbiter.tell(new FinishTurnMsg(), getSelf());
         isMyTurn = false;
         getContext().become(defaultBehavior());
     }
 
 
     public void sendSolutionMsg(final Map<ActorRef, Combination> solution) {
-        referee.tell(new SolutionMsg(solution), getSelf());
+        arbiter.tell(new SolutionMsg(solution), getSelf());
         getContext().become(defaultBehavior());
         isMyTurn = false;
     }
